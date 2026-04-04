@@ -34,15 +34,17 @@ router.get('/dashboard', requireRole('candidate'), async (req, res) => {
        LIMIT 5
     `);
 
-    // คำนวณอันดับของผู้สมัครปัจจุบัน (นับคนที่ได้คะแนนมากกว่า + 1)
-    const [[{ ahead }]] = await db.execute(`
-      SELECT COUNT(DISTINCT c2.id) AS ahead
+    // คำนวณอันดับของผู้สมัครปัจจุบัน (นับแถวที่คืนมา = จำนวนคนที่ได้คะแนนมากกว่า)
+    // ใช้ aheadRows.length แทนการ destructure เพื่อหลีกเลี่ยง TypeError เมื่อผลว่าง
+    const [aheadRows] = await db.execute(`
+      SELECT c2.id
         FROM candidates c2
         LEFT JOIN votes v2 ON c2.id = v2.candidate_id
        WHERE c2.is_registered = 1 AND c2.is_enabled = 1
        GROUP BY c2.id
       HAVING COUNT(v2.id) > (SELECT COUNT(*) FROM votes WHERE candidate_id = ?)
-    `, [candidateId]).catch(() => [[{ ahead: 0 }]]); // fallback ถ้า query ไม่มีผล
+    `, [candidateId]).catch(() => [[]]);
+    const ahead = aheadRows.length; // จำนวนคนที่อยู่หน้า (ถ้าอันดับ 1 = 0)
 
     const myVotes = parseInt(me.my_votes) || 0;
     const myRank  = (ahead || 0) + 1;
