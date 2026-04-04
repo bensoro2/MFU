@@ -1,0 +1,73 @@
+<%- include('../partials/header', { title: 'ผลการเลือกตั้ง' }) %>
+
+<div class="page-header mb-6">
+  <h1 class="text-2xl font-bold text-gray-800">ผลการเลือกตั้ง</h1>
+  <p class="text-gray-500 text-sm mt-1">คะแนนทั้งหมดของผู้สมัคร</p>
+</div>
+
+<!-- สรุป stat -->
+<div class="grid grid-cols-2 gap-4 mb-6">
+  <div class="stat-card">
+    <div class="stat-label">คะแนนทั้งหมด</div>
+    <div class="stat-value"><%= totalVotes %></div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-label">ผู้สมัคร</div>
+    <div class="stat-value"><%= candidates.length %></div>
+  </div>
+</div>
+
+<!-- ค้นหา -->
+<form method="GET" action="/candidate/results" class="mb-4">
+  <div class="search-bar">
+    <input type="text" name="search" placeholder="ค้นหาผู้สมัคร..."
+           value="<%= search %>" class="flex-1 bg-transparent outline-none text-sm" />
+    <button type="submit" class="text-gray-400 hover:text-gray-600 text-sm">ค้นหา</button>
+    <% if (search) { %><a href="/candidate/results" class="text-xs text-red-400">✕</a><% } %>
+  </div>
+</form>
+
+<!-- รายชื่อผู้สมัครพร้อมคะแนน -->
+<div class="mfu-card">
+  <% if (candidates.length === 0) { %>
+    <p class="text-center text-gray-400 py-8">ไม่พบข้อมูล</p>
+  <% } else { %>
+    <% candidates.forEach((c, i) => {
+         const pct   = totalVotes > 0 ? ((c.vote_count / totalVotes) * 100).toFixed(1) : '0.0';
+         const isMe  = c.id === myCandidateId; // highlight แถวของตัวเอง
+    %>
+      <div class="mb-4 pb-4 border-b border-gray-100 last:border-0 <%= isMe ? 'bg-yellow-50 rounded-lg p-3 -mx-3' : '' %>">
+        <div class="flex items-center justify-between mb-2">
+          <div class="flex items-center gap-3">
+            <!-- badge อันดับ -->
+            <% if (i === 0 && c.vote_count > 0) { %>
+              <span class="badge-gold">อันดับ 1</span>
+            <% } else { %>
+              <span class="text-gray-400 text-sm">#<%= i+1 %></span>
+            <% } %>
+            <div class="avatar <%= isMe ? 'avatar-gold' : '' %>"><%= c.number %></div>
+            <div>
+              <span class="font-medium text-gray-800 <%= isMe ? 'text-mfu-maroon' : '' %>">
+                <%= c.full_name || `(${c.candidate_id})` %>
+              </span>
+              <!-- badge ฉัน -->
+              <% if (isMe) { %>
+                <span class="ml-2 text-xs bg-yellow-200 text-yellow-800 px-2 py-0.5 rounded-full">ฉัน</span>
+              <% } %>
+              <div class="text-xs text-gray-400 mt-0.5"><%= c.candidate_id %></div>
+            </div>
+          </div>
+          <div class="text-right">
+            <div class="font-bold text-lg text-mfu-maroon"><%= c.vote_count %></div>
+            <div class="text-xs text-gray-400"><%= pct %>%</div>
+          </div>
+        </div>
+        <div class="vote-bar">
+          <div class="vote-fill <%= isMe ? 'bg-mfu-gold' : '' %>" style="width: <%= pct %>%"></div>
+        </div>
+      </div>
+    <% }) %>
+  <% } %>
+</div>
+
+<%- include('../partials/footer') %>

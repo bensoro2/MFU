@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>เข้าสู่ระบบ — MFU Election</title>
+
+  <!-- Google Fonts: Sarabun -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: { sarabun: ['Sarabun', 'sans-serif'] },
+          colors: { 'mfu-maroon': '#8c1515', 'mfu-gold': '#fec260', 'mfu-dark': '#1a1a2e' }
+        }
+      }
+    }
+  </script>
+  <link rel="stylesheet" href="/assets/app.css" />
+</head>
+<body class="min-h-screen bg-gray-100 font-sarabun flex items-center justify-center p-4">
+
+<div class="w-full max-w-md">
+
+  <!-- โลโก้ -->
+  <div class="text-center mb-6">
+    <div class="w-16 h-16 rounded-full bg-mfu-maroon flex items-center justify-center mx-auto mb-3 shadow-lg">
+      <span class="text-white font-bold text-2xl">M</span>
+    </div>
+    <h1 class="text-2xl font-bold text-gray-800">MFU Election</h1>
+    <p class="text-gray-500 text-sm mt-1">ระบบเลือกตั้งมหาวิทยาลัยแม่ฟ้าหลวง</p>
+  </div>
+
+  <!-- Flash Messages -->
+  <% if (flash_error) { %>
+    <div class="flash-err mb-4"><%= flash_error %></div>
+  <% } %>
+  <% if (flash_success) { %>
+    <div class="flash-ok mb-4"><%= flash_success %></div>
+  <% } %>
+
+  <!-- Login Card -->
+  <div class="mfu-card">
+
+    <!-- Tab Bar: สลับระหว่าง voter / candidate / admin -->
+    <div class="tab-bar mb-6">
+      <button onclick="switchTab('voter')"     id="tab-voter"     class="tab-btn <%= tab === 'voter'     ? 'active' : '' %>">ผู้ลงคะแนน</button>
+      <button onclick="switchTab('candidate')" id="tab-candidate" class="tab-btn <%= tab === 'candidate' ? 'active' : '' %>">ผู้สมัคร</button>
+      <button onclick="switchTab('admin')"     id="tab-admin"     class="tab-btn <%= tab === 'admin'     ? 'active' : '' %>">Admin</button>
+    </div>
+
+    <!-- Panel: ผู้ลงคะแนน (Voter) -->
+    <div id="panel-voter" class="<%= tab !== 'voter' ? 'hidden' : '' %>">
+      <form method="POST" action="/auth/voter-login">
+        <!-- hidden field สำหรับ CSRF protection -->
+        <input type="hidden" name="csrf_token" value="<%= csrf_token %>" />
+        <div class="mb-4">
+          <label class="block text-sm font-medium text-gray-700 mb-1">เลขบัตรประชาชน</label>
+          <input type="text" name="citizen_id" maxlength="13" placeholder="1234567890123"
+                 class="input-field" autocomplete="off" required />
+        </div>
+        <div class="mb-6">
+          <label class="block text-sm font-medium text-gray-700 mb-1">รหัสหลังบัตร (Laser ID)</label>
+          <input type="text" name="laser_id" placeholder="AA0-0000001-00"
+                 class="input-field" autocomplete="off" required />
+        </div>
+        <button type="submit" class="btn-primary w-full">เข้าสู่ระบบ</button>
+      </form>
+    </div>
+
+    <!-- Panel: ผู้สมัคร (Candidate) — toggle ระหว่าง login และ register -->
+    <div id="panel-candidate" class="<%= tab !== 'candidate' ? 'hidden' : '' %>">
+
+      <!-- ฟอร์ม Login ผู้สมัคร -->
+      <div id="cand-login">
+        <form method="POST" action="/auth/candidate-login">
+          <input type="hidden" name="csrf_token" value="<%= csrf_token %>" />
+          <div class="mb-4">
+            <label class="block text-sm font-medium text-gray-700 mb-1">Candidate ID</label>
+            <input type="text" name="candidate_code" placeholder="C-0001"
+                   class="input-field" autocomplete="off" required />
+          </div>
+          <div class="mb-6">
+            <label class="block text-sm font-medium text-gray-700 mb-1">Password</label>
+            <input type="password" name="password" class="input-field" required />
+          </div>
+          <button type="submit" class="btn-primary w-full">เข้าสู่ระบบ</button>
+        </form>
+        <!-- ลิงก์สลับไปหน้าลงทะเบียน -->
+        <div class="divider-text my-4">หรือ</div>
+        <button onclick="showCandReg()" class="btn-outline w-full">ลงทะเบียนผู้สมัคร</button>
+      </div>
+
+      <!-- ฟอร์ม Register ผู้สมัคร -->
+      <div id="cand-reg" class="hidden">
+        <form method="POST" action="/auth/candidate-register">
+          <input type="hidden" name="csrf_token" value="<%= csrf_token %>" />
+          <div class="mb-3">
+            <label class="block text-sm font-medium text-gray-700 mb-1">Candidate ID</label>
+            <input type="text" name="candidate_code" placeholder="C-0001" oninput="checkCandidateId(this)"
+                   class="input-field" autocomplete="off" required />
+            <p id="cand-id-hint" class="text-xs mt-1 text-gray-400"></p>
+          </div>
+          <div class="mb-3">
+            <label class="block text-sm font-medium text-gray-700 mb-1">ชื่อ-นามสกุล</label>
+            <input type="text" name="full_name" class="input-field" required />
+          </div>
+          <div class="mb-3">
+            <label class="block text-sm font-medium text-gray-700 mb-1">Password</label>
+            <!-- oninput เรียก strength meter -->
+            <input type="password" name="password" id="reg-password"
+                   class="input-field" oninput="updateStrength(this)" required />
+            <!-- progress bar แสดงความแข็งแกร่งของ password -->
+            <div class="strength-bar mt-1"><div id="strength-fill" class="strength-fill"></div></div>
+            <p id="strength-hint" class="text-xs mt-1 text-gray-400"></p>
+          </div>
+          <div class="mb-3">
+            <label class="block text-sm font-medium text-gray-700 mb-1">ยืนยัน Password</label>
+            <input type="password" name="password_confirm" id="reg-confirm"
+                   class="input-field" oninput="checkMatch()" required />
+            <p id="match-hint" class="text-xs mt-1"></p>
+          </div>
+          <div class="mb-5">
+            <label class="block text-sm font-medium text-gray-700 mb-1">Gmail</label>
+            <input type="email" name="email" placeholder="example@gmail.com" class="input-field" required />
+          </div>
+          <button type="submit" class="btn-primary w-full">ลงทะเบียน</button>
+        </form>
+        <button onclick="showCandLogin()" class="btn-outline w-full mt-3">กลับไปหน้าเข้าสู่ระบบ</button>
+      </div>
+    </div>
+
+    <!-- Panel: Admin -->
+    <div id="panel-admin" class="<%= tab !== 'admin' ? 'hidden' : '' %>">
+      <form method="POST" action="/auth/admin-login">
+        <input type="hidden" name="csrf_token" value="<%= csrf_token %>" />
+        <div class="mb-4">
+          <label class="block text-sm font-medium text-gray-700 mb-1">Username</label>
+          <input type="text" name="username" class="input-field" autocomplete="off" required />
+        </div>
+        <div class="mb-6">
+          <label class="block text-sm font-medium text-gray-700 mb-1">Password</label>
+          <input type="password" name="password" class="input-field" required />
+        </div>
+        <button type="submit" class="btn-primary w-full">เข้าสู่ระบบ</button>
+      </form>
+    </div>
+
+  </div><!-- /.mfu-card -->
+</div>
+
+<script src="/assets/app.js"></script>
+<script>
+  // สลับแท็บ: ซ่อน panel อื่น แสดง panel ที่เลือก
+  function switchTab(tab) {
+    ['voter', 'candidate', 'admin'].forEach(t => {
+      document.getElementById('panel-' + t).classList.toggle('hidden', t !== tab);
+      document.getElementById('tab-' + t).classList.toggle('active', t === tab);
+    });
+  }
+
+  // แสดงฟอร์มลงทะเบียน candidate
+  function showCandReg() {
+    document.getElementById('cand-login').classList.add('hidden');
+    document.getElementById('cand-reg').classList.remove('hidden');
+  }
+
+  // กลับไปฟอร์ม login candidate
+  function showCandLogin() {
+    document.getElementById('cand-reg').classList.add('hidden');
+    document.getElementById('cand-login').classList.remove('hidden');
+  }
+
+  // ตรวจสอบรูปแบบ Candidate ID แบบ real-time
+  function checkCandidateId(input) {
+    const val  = input.value.trim().toUpperCase();
+    const hint = document.getElementById('cand-id-hint');
+    if (!val) { hint.textContent = ''; return; }
+    if (/^C-\d{4}$/.test(val)) {
+      hint.textContent  = '✓ รูปแบบถูกต้อง';
+      hint.className    = 'text-xs mt-1 text-green-600';
+    } else {
+      hint.textContent  = 'รูปแบบต้องเป็น C-XXXX (เช่น C-0001)';
+      hint.className    = 'text-xs mt-1 text-red-500';
+    }
+  }
+
+  // ตรวจสอบ password ตรงกันหรือไม่
+  function checkMatch() {
+    const pw      = document.getElementById('reg-password').value;
+    const confirm = document.getElementById('reg-confirm').value;
+    const hint    = document.getElementById('match-hint');
+    if (!confirm) { hint.textContent = ''; return; }
+    if (pw === confirm) {
+      hint.textContent = '✓ Password ตรงกัน';
+      hint.className   = 'text-xs mt-1 text-green-600';
+    } else {
+      hint.textContent = '✗ Password ไม่ตรงกัน';
+      hint.className   = 'text-xs mt-1 text-red-500';
+    }
+  }
+</script>
+</body>
+</html>

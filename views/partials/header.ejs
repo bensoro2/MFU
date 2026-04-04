@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title><%= title || 'MFU Election' %> — MFU Election</title>
+
+  <!-- Google Fonts: Sarabun สำหรับรองรับภาษาไทย -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    // ตั้งค่า Tailwind ให้ใช้สีและ font ของ MFU
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: { sarabun: ['Sarabun', 'sans-serif'] },
+          colors: {
+            'mfu-maroon': '#8c1515',
+            'mfu-gold':   '#fec260',
+            'mfu-dark':   '#1a1a2e',
+            'mfu-bg':     '#f7f8fc',
+          }
+        }
+      }
+    }
+  </script>
+
+  <!-- Custom CSS -->
+  <link rel="stylesheet" href="/assets/app.css" />
+</head>
+<body class="bg-mfu-bg font-sarabun min-h-screen">
+
+<!-- Navigation Bar -->
+<nav class="sticky top-0 z-50 bg-mfu-dark shadow-lg">
+  <div class="max-w-6xl mx-auto px-4 flex items-center justify-between h-14">
+
+    <!-- โลโก้ -->
+    <a href="/<%= session.role %>/dashboard" class="flex items-center gap-2">
+      <div class="w-8 h-8 rounded-full bg-mfu-maroon flex items-center justify-center">
+        <span class="text-white font-bold text-sm">M</span>
+      </div>
+      <span class="text-white font-semibold text-sm hidden sm:block">MFU Election</span>
+    </a>
+
+    <!-- เมนูนำทาง ขึ้นอยู่กับ role ของผู้ใช้ -->
+    <div class="flex items-center gap-1">
+      <% if (session.role === 'voter') { %>
+        <a href="/voter/dashboard" class="nav-link">หน้าหลัก</a>
+        <a href="/voter/results"   class="nav-link">ผลคะแนน</a>
+        <a href="/voter/history"   class="nav-link">ประวัติโหวต</a>
+      <% } else if (session.role === 'candidate') { %>
+        <a href="/candidate/dashboard" class="nav-link">หน้าหลัก</a>
+        <a href="/candidate/profile"   class="nav-link">โปรไฟล์</a>
+        <a href="/candidate/results"   class="nav-link">ผลคะแนน</a>
+      <% } else if (session.role === 'admin') { %>
+        <a href="/admin/dashboard"  class="nav-link">Dashboard</a>
+        <a href="/admin/candidates" class="nav-link">ผู้สมัคร</a>
+        <a href="/admin/voters"     class="nav-link">ผู้ลงคะแนน</a>
+        <a href="/admin/results"    class="nav-link">ผลคะแนน</a>
+      <% } %>
+    </div>
+
+    <!-- ชื่อผู้ใช้ + ปุ่ม logout -->
+    <div class="flex items-center gap-3">
+      <span class="text-white/50 text-xs hidden md:block">
+        <% if (session.role === 'candidate') { %>
+          <%= session.candidate_name || session.candidate_code %>
+        <% } else if (session.role === 'voter') { %>
+          <%= session.citizen_id %>
+        <% } else { %>
+          Admin
+        <% } %>
+      </span>
+      <a href="/logout" class="btn-outline text-xs py-1 px-3">ออกจากระบบ</a>
+    </div>
+
+  </div>
+</nav>
+
+<!-- Flash Messages -->
+<div class="max-w-6xl mx-auto px-4 pt-4">
+  <% if (flash_error) { %>
+    <div class="flash-err"><%= flash_error %></div>
+  <% } %>
+  <% if (flash_success) { %>
+    <div class="flash-ok"><%= flash_success %></div>
+  <% } %>
+</div>
+
+<!-- เปิด main container -->
+<main class="max-w-6xl mx-auto px-4 py-6">

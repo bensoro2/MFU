@@ -1,0 +1,87 @@
+<%- include('../partials/header', { title: 'ผลการเลือกตั้ง' }) %>
+
+<div class="page-header mb-6">
+  <h1 class="text-2xl font-bold text-gray-800">ผลการเลือกตั้ง</h1>
+  <p class="text-gray-500 text-sm mt-1">ผลคะแนนทั้งหมดรวมถึงผู้สมัครที่ปิดการใช้งาน</p>
+</div>
+
+<!-- สถิติสรุป -->
+<div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+  <div class="stat-card">
+    <div class="stat-label">ผู้มีสิทธิ์โหวต</div>
+    <div class="stat-value"><%= stats.totalVoters %></div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-label">ผู้สมัคร</div>
+    <div class="stat-value"><%= stats.totalCandidates %></div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-label">โหวตแล้ว</div>
+    <div class="stat-value"><%= stats.totalVotes %></div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-label">% ผู้มาใช้สิทธิ์</div>
+    <div class="stat-value text-mfu-maroon"><%= stats.pct %>%</div>
+  </div>
+</div>
+
+<!-- ช่องค้นหา -->
+<form method="GET" action="/admin/results" class="mb-4">
+  <div class="search-bar">
+    <input type="text" name="search" placeholder="ค้นหาชื่อหรือ Candidate ID..."
+           value="<%= search %>" class="flex-1 bg-transparent outline-none text-sm" />
+    <button type="submit" class="text-gray-400 hover:text-gray-600 text-sm">ค้นหา</button>
+    <% if (search) { %>
+      <a href="/admin/results" class="text-xs text-gray-400 hover:text-red-500">✕ ล้าง</a>
+    <% } %>
+  </div>
+</form>
+
+<!-- ตารางผลคะแนน -->
+<div class="mfu-card">
+  <% if (candidates.length === 0) { %>
+    <p class="text-center text-gray-400 py-8">ไม่พบข้อมูลผู้สมัคร</p>
+  <% } else { %>
+    <% candidates.forEach((c, i) => {
+         const pct = stats.totalVotes > 0 ? ((c.vote_count / stats.totalVotes) * 100).toFixed(1) : '0.0';
+    %>
+      <div class="mb-4 pb-4 border-b border-gray-100 last:border-0">
+        <div class="flex items-center justify-between mb-2">
+          <div class="flex items-center gap-3">
+            <!-- อันดับและ avatar -->
+            <% if (i === 0 && c.vote_count > 0) { %>
+              <span class="badge-gold text-sm">อันดับ 1</span>
+            <% } else { %>
+              <span class="text-gray-400 text-sm w-6 text-center">#<%= i+1 %></span>
+            <% } %>
+            <div class="avatar"><%= c.number || '?' %></div>
+            <div>
+              <div class="font-medium text-gray-800">
+                <%= c.full_name || `(${c.candidate_id})` %>
+              </div>
+              <div class="text-xs text-gray-400 flex gap-2 mt-0.5">
+                <span><%= c.candidate_id %></span>
+                <!-- badge สถานะผู้สมัคร -->
+                <% if (!c.is_registered) { %>
+                  <span class="badge-warn">รอลงทะเบียน</span>
+                <% } else if (!c.is_enabled) { %>
+                  <span class="badge-dis">ปิดการใช้งาน</span>
+                <% } %>
+              </div>
+            </div>
+          </div>
+          <div class="text-right">
+            <div class="font-bold text-lg text-mfu-maroon"><%= c.vote_count %></div>
+            <div class="text-xs text-gray-400">คะแนน (<%= pct %>%)</div>
+          </div>
+        </div>
+        <!-- แถบ progress bar คะแนน -->
+        <div class="vote-bar">
+          <div class="vote-fill" style="width: <%= pct %>%"></div>
+        </div>
+      </div>
+    <% }) %>
+  <% } %>
+</div>
+
+<%- include('../partials/footer') %>

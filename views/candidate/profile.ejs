@@ -1,0 +1,75 @@
+<%- include('../partials/header', { title: 'โปรไฟล์ผู้สมัคร' }) %>
+
+<div class="page-header mb-6">
+  <h1 class="text-2xl font-bold text-gray-800">โปรไฟล์ผู้สมัคร</h1>
+  <p class="text-gray-500 text-sm mt-1">แก้ไขชื่อและนโยบายของคุณ</p>
+</div>
+
+<div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+
+  <!-- Card ซ้าย: ข้อมูลที่อ่านอย่างเดียว -->
+  <div class="mfu-card text-center">
+    <!-- Avatar แสดงหมายเลขผู้สมัคร -->
+    <div class="avatar-lg mx-auto mb-4 text-xl"><%= candidate.number %></div>
+    <h2 class="text-lg font-bold text-gray-800"><%= candidate.full_name || '(ยังไม่ได้กรอกชื่อ)' %></h2>
+    <p class="text-gray-500 text-sm mt-1"><%= candidate.candidate_id %></p>
+
+    <div class="mt-4 space-y-2 text-left">
+      <div class="data-row">
+        <span class="text-gray-500 text-sm">Email</span>
+        <span class="text-sm font-medium"><%= candidate.email || '—' %></span>
+      </div>
+      <div class="data-row">
+        <span class="text-gray-500 text-sm">หมายเลข</span>
+        <span class="text-sm font-medium"><%= candidate.number %></span>
+      </div>
+      <div class="data-row">
+        <span class="text-gray-500 text-sm">สถานะ</span>
+        <% if (candidate.is_enabled) { %>
+          <span class="badge-ok">เปิดใช้งาน</span>
+        <% } else { %>
+          <span class="badge-dis">ปิดการใช้งาน</span>
+        <% } %>
+      </div>
+      <% if (candidate.registered_at) { %>
+        <div class="data-row">
+          <span class="text-gray-500 text-sm">ลงทะเบียนเมื่อ</span>
+          <span class="text-sm text-gray-600">
+            <%= new Date(candidate.registered_at).toLocaleDateString('th-TH') %>
+          </span>
+        </div>
+      <% } %>
+    </div>
+  </div>
+
+  <!-- Card ขวา: ฟอร์มแก้ไข -->
+  <div class="mfu-card md:col-span-2">
+    <h2 class="section-title mb-5">แก้ไขข้อมูล</h2>
+    <form method="POST" action="/candidate/update-profile">
+      <input type="hidden" name="csrf_token" value="<%= csrf_token %>" />
+
+      <div class="mb-4">
+        <label class="block text-sm font-medium text-gray-700 mb-1">ชื่อ-นามสกุล <span class="text-red-500">*</span></label>
+        <input type="text" name="full_name"
+               value="<%= candidate.full_name || '' %>"
+               class="input-field" required />
+      </div>
+
+      <div class="mb-6">
+        <label class="block text-sm font-medium text-gray-700 mb-1">นโยบาย / แนะนำตัว</label>
+        <textarea name="policy" rows="6"
+                  placeholder="กรอกนโยบายหรือแนะนำตัวของคุณที่นี่..."
+                  class="input-field resize-none"><%= candidate.policy || '' %></textarea>
+        <p class="text-xs text-gray-400 mt-1">นโยบายนี้จะแสดงให้ผู้ลงคะแนนเห็น</p>
+      </div>
+
+      <div class="flex gap-3">
+        <button type="submit" class="btn-primary">บันทึก</button>
+        <a href="/candidate/dashboard" class="btn-outline">ยกเลิก</a>
+      </div>
+    </form>
+  </div>
+
+</div>
+
+<%- include('../partials/footer') %>

@@ -1,0 +1,522 @@
+{
+  "info": {
+    "name": "MFU Election — JSON API",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_postman_id": "mfu-election-api-collection"
+  },
+  "variable": [
+    { "key": "base_url",    "value": "http://localhost:3000" },
+    { "key": "csrf_token",  "value": "" }
+  ],
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "// Auto-inject csrf_token จาก collection variable ลงใน body ทุก request",
+          "// (ไม่ต้องแก้ทุก request ด้วยตัวเอง)"
+        ]
+      }
+    }
+  ],
+  "item": [
+    {
+      "name": "0. Setup — ดึง CSRF Token",
+      "item": [
+        {
+          "name": "GET /api/csrf",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const json = pm.response.json();",
+                  "if (json.csrf_token) {",
+                  "  pm.collectionVariables.set('csrf_token', json.csrf_token);",
+                  "  console.log('csrf_token saved:', json.csrf_token);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/csrf",
+              "host": ["{{base_url}}"],
+              "path": ["api", "csrf"]
+            },
+            "description": "เรียกก่อนเสมอ — บันทึก csrf_token ลงใน collection variable อัตโนมัติ"
+          }
+        }
+      ]
+    },
+    {
+      "name": "1. Auth",
+      "item": [
+        {
+          "name": "POST /api/auth/admin-login",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/auth/admin-login",
+              "host": ["{{base_url}}"],
+              "path": ["api", "auth", "admin-login"]
+            },
+            "body": {
+              "mode": "urlencoded",
+              "urlencoded": [
+                { "key": "username",   "value": "admin",         "type": "text" },
+                { "key": "password",   "value": "admin123",      "type": "text" },
+                { "key": "csrf_token", "value": "{{csrf_token}}", "type": "text" }
+              ]
+            },
+            "description": "Response: { success, role, csrf_token }\nหลัง login csrf_token ใหม่จะถูกส่งมาด้วย ให้อัปเดต collection variable"
+          }
+        },
+        {
+          "name": "POST /api/auth/voter-login",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/auth/voter-login",
+              "host": ["{{base_url}}"],
+              "path": ["api", "auth", "voter-login"]
+            },
+            "body": {
+              "mode": "urlencoded",
+              "urlencoded": [
+                { "key": "citizen_id", "value": "1234567890123",  "type": "text" },
+                { "key": "laser_id",   "value": "AA0-0000001-00", "type": "text" },
+                { "key": "csrf_token", "value": "{{csrf_token}}",  "type": "text" }
+              ]
+            },
+            "description": "Response: { success, role, csrf_token }"
+          }
+        },
+        {
+          "name": "POST /api/auth/candidate-login",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/auth/candidate-login",
+              "host": ["{{base_url}}"],
+              "path": ["api", "auth", "candidate-login"]
+            },
+            "body": {
+              "mode": "urlencoded",
+              "urlencoded": [
+                { "key": "candidate_code", "value": "C-0001",       "type": "text" },
+                { "key": "password",       "value": "password123",  "type": "text" },
+                { "key": "csrf_token",     "value": "{{csrf_token}}","type": "text" }
+              ]
+            },
+            "description": "Response: { success, role, csrf_token }"
+          }
+        },
+        {
+          "name": "POST /api/auth/candidate-register",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/auth/candidate-register",
+              "host": ["{{base_url}}"],
+              "path": ["api", "auth", "candidate-register"]
+            },
+            "body": {
+              "mode": "urlencoded",
+              "urlencoded": [
+                { "key": "candidate_code",  "value": "C-0001",          "type": "text" },
+                { "key": "full_name",        "value": "นายสมชาย ใจดี",  "type": "text" },
+                { "key": "email",            "value": "somchai@gmail.com","type": "text" },
+                { "key": "password",         "value": "password123",     "type": "text" },
+                { "key": "password_confirm", "value": "password123",     "type": "text" },
+                { "key": "csrf_token",       "value": "{{csrf_token}}",  "type": "text" }
+              ]
+            },
+            "description": "ลงทะเบียนครั้งแรก (admin ต้องเพิ่ม candidate_id ไว้ก่อน)\nResponse: { success, message }"
+          }
+        },
+        {
+          "name": "GET /api/auth/logout",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/auth/logout",
+              "host": ["{{base_url}}"],
+              "path": ["api", "auth", "logout"]
+            },
+            "description": "Response: { success, message }"
+          }
+        }
+      ]
+    },
+    {
+      "name": "2. Admin",
+      "item": [
+        {
+          "name": "GET /api/admin/dashboard",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/admin/dashboard",
+              "host": ["{{base_url}}"],
+              "path": ["api", "admin", "dashboard"]
+            },
+            "description": "Response: { success, data: { stats, votingEnabled, registrationEnabled, topCandidates } }"
+          }
+        },
+        {
+          "name": "GET /api/admin/candidates",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/admin/candidates?search=",
+              "host": ["{{base_url}}"],
+              "path": ["api", "admin", "candidates"],
+              "query": [{ "key": "search", "value": "" }]
+            },
+            "description": "Response: { success, data: { candidates[], search } }"
+          }
+        },
+        {
+          "name": "POST /api/admin/add-candidate",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/admin/add-candidate",
+              "host": ["{{base_url}}"],
+              "path": ["api", "admin", "add-candidate"]
+            },
+            "body": {
+              "mode": "urlencoded",
+              "urlencoded": [
+                { "key": "candidate_id", "value": "C-0001",       "type": "text" },
+                { "key": "number",       "value": "1",             "type": "text" },
+                { "key": "csrf_token",   "value": "{{csrf_token}}","type": "text" }
+              ]
+            },
+            "description": "candidate_id รูปแบบ C-XXXX, number 1–99\nResponse: { success, message }"
+          }
+        },
+        {
+          "name": "POST /api/admin/toggle-candidate (enable)",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/admin/toggle-candidate",
+              "host": ["{{base_url}}"],
+              "path": ["api", "admin", "toggle-candidate"]
+            },
+            "body": {
+              "mode": "urlencoded",
+              "urlencoded": [
+                { "key": "id",         "value": "1",             "type": "text" },
+                { "key": "action",     "value": "enable",        "type": "text" },
+                { "key": "csrf_token", "value": "{{csrf_token}}","type": "text" }
+              ]
+            },
+            "description": "action: enable | disable\nResponse: { success, message }"
+          }
+        },
+        {
+          "name": "POST /api/admin/toggle-candidate (disable)",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/admin/toggle-candidate",
+              "host": ["{{base_url}}"],
+              "path": ["api", "admin", "toggle-candidate"]
+            },
+            "body": {
+              "mode": "urlencoded",
+              "urlencoded": [
+                { "key": "id",         "value": "1",             "type": "text" },
+                { "key": "action",     "value": "disable",       "type": "text" },
+                { "key": "csrf_token", "value": "{{csrf_token}}","type": "text" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "GET /api/admin/voters",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/admin/voters?search=&page=1",
+              "host": ["{{base_url}}"],
+              "path": ["api", "admin", "voters"],
+              "query": [
+                { "key": "search", "value": "" },
+                { "key": "page",   "value": "1" }
+              ]
+            },
+            "description": "Response: { success, data: { voters[], total, active, voted, page, totalPages } }"
+          }
+        },
+        {
+          "name": "POST /api/admin/add-voter",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/admin/add-voter",
+              "host": ["{{base_url}}"],
+              "path": ["api", "admin", "add-voter"]
+            },
+            "body": {
+              "mode": "urlencoded",
+              "urlencoded": [
+                { "key": "citizen_id", "value": "1234567890123",  "type": "text" },
+                { "key": "laser_id",   "value": "AA0-0000001-00", "type": "text" },
+                { "key": "csrf_token", "value": "{{csrf_token}}",  "type": "text" }
+              ]
+            },
+            "description": "citizen_id ต้องเป็นตัวเลข 13 หลัก\nResponse: { success, message }"
+          }
+        },
+        {
+          "name": "POST /api/admin/toggle-voter (enable)",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/admin/toggle-voter",
+              "host": ["{{base_url}}"],
+              "path": ["api", "admin", "toggle-voter"]
+            },
+            "body": {
+              "mode": "urlencoded",
+              "urlencoded": [
+                { "key": "id",         "value": "1",             "type": "text" },
+                { "key": "action",     "value": "enable",        "type": "text" },
+                { "key": "csrf_token", "value": "{{csrf_token}}","type": "text" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "POST /api/admin/toggle-voter (disable)",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/admin/toggle-voter",
+              "host": ["{{base_url}}"],
+              "path": ["api", "admin", "toggle-voter"]
+            },
+            "body": {
+              "mode": "urlencoded",
+              "urlencoded": [
+                { "key": "id",         "value": "1",             "type": "text" },
+                { "key": "action",     "value": "disable",       "type": "text" },
+                { "key": "csrf_token", "value": "{{csrf_token}}","type": "text" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "POST /api/admin/toggle-settings (เปิดโหวต)",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/admin/toggle-settings",
+              "host": ["{{base_url}}"],
+              "path": ["api", "admin", "toggle-settings"]
+            },
+            "body": {
+              "mode": "urlencoded",
+              "urlencoded": [
+                { "key": "setting",    "value": "voting_enabled", "type": "text" },
+                { "key": "value",      "value": "1",              "type": "text" },
+                { "key": "csrf_token", "value": "{{csrf_token}}","type": "text" }
+              ]
+            },
+            "description": "setting: voting_enabled | registration_enabled\nvalue: 1=เปิด, ว่าง=ปิด\nResponse: { success, message, setting, value }"
+          }
+        },
+        {
+          "name": "POST /api/admin/toggle-settings (เปิดลงทะเบียน)",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/admin/toggle-settings",
+              "host": ["{{base_url}}"],
+              "path": ["api", "admin", "toggle-settings"]
+            },
+            "body": {
+              "mode": "urlencoded",
+              "urlencoded": [
+                { "key": "setting",    "value": "registration_enabled","type": "text" },
+                { "key": "value",      "value": "1",                   "type": "text" },
+                { "key": "csrf_token", "value": "{{csrf_token}}",      "type": "text" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "GET /api/admin/results",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/admin/results?search=",
+              "host": ["{{base_url}}"],
+              "path": ["api", "admin", "results"],
+              "query": [{ "key": "search", "value": "" }]
+            },
+            "description": "Response: { success, data: { candidates[], stats } }"
+          }
+        }
+      ]
+    },
+    {
+      "name": "3. Candidate",
+      "item": [
+        {
+          "name": "GET /api/candidate/dashboard",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/candidate/dashboard",
+              "host": ["{{base_url}}"],
+              "path": ["api", "candidate", "dashboard"]
+            },
+            "description": "Response: { success, data: { candidate, myVotes, myRank, myPct, totalVoters, totalCandidates, totalVotes, overallPct, top5[] } }"
+          }
+        },
+        {
+          "name": "GET /api/candidate/profile",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/candidate/profile",
+              "host": ["{{base_url}}"],
+              "path": ["api", "candidate", "profile"]
+            },
+            "description": "Response: { success, data: { candidate } }"
+          }
+        },
+        {
+          "name": "POST /api/candidate/update-profile",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/candidate/update-profile",
+              "host": ["{{base_url}}"],
+              "path": ["api", "candidate", "update-profile"]
+            },
+            "body": {
+              "mode": "urlencoded",
+              "urlencoded": [
+                { "key": "full_name",  "value": "นายสมชาย ใจดี",                            "type": "text" },
+                { "key": "policy",     "value": "นโยบาย: พัฒนามหาวิทยาลัย เพิ่มสวัสดิการ", "type": "text" },
+                { "key": "csrf_token", "value": "{{csrf_token}}",                             "type": "text" }
+              ]
+            },
+            "description": "Response: { success, message }"
+          }
+        },
+        {
+          "name": "GET /api/candidate/results",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/candidate/results?search=",
+              "host": ["{{base_url}}"],
+              "path": ["api", "candidate", "results"],
+              "query": [{ "key": "search", "value": "" }]
+            },
+            "description": "Response: { success, data: { candidates[], totalVotes, myCandidateId } }"
+          }
+        }
+      ]
+    },
+    {
+      "name": "4. Voter",
+      "item": [
+        {
+          "name": "GET /api/voter/dashboard",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/voter/dashboard?search=",
+              "host": ["{{base_url}}"],
+              "path": ["api", "voter", "dashboard"],
+              "query": [{ "key": "search", "value": "" }]
+            },
+            "description": "Response: { success, data: { voter, votingEnabled, totalVoters, totalVotes, totalCandidates, pct, candidates[] } }"
+          }
+        },
+        {
+          "name": "POST /api/voter/cast-vote",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/voter/cast-vote",
+              "host": ["{{base_url}}"],
+              "path": ["api", "voter", "cast-vote"]
+            },
+            "body": {
+              "mode": "urlencoded",
+              "urlencoded": [
+                { "key": "candidate_id", "value": "1",             "type": "text", "description": "id (primary key) ของผู้สมัคร" },
+                { "key": "csrf_token",   "value": "{{csrf_token}}","type": "text" }
+              ]
+            },
+            "description": "candidate_id = id (PK) ของ candidates table ไม่ใช่ C-XXXX\nResponse: { success, message }"
+          }
+        },
+        {
+          "name": "GET /api/voter/results",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/voter/results?search=",
+              "host": ["{{base_url}}"],
+              "path": ["api", "voter", "results"],
+              "query": [{ "key": "search", "value": "" }]
+            },
+            "description": "Response: { success, data: { candidates[], totalVotes, totalVoters, pct } }"
+          }
+        },
+        {
+          "name": "GET /api/voter/history",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/voter/history",
+              "host": ["{{base_url}}"],
+              "path": ["api", "voter", "history"]
+            },
+            "description": "Response: { success, data: { vote: { voted_at, candidate_id, full_name, number, policy } | null } }"
+          }
+        }
+      ]
+    }
+  ]
+}

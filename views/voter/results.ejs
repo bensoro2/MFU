@@ -1,0 +1,75 @@
+<%- include('../partials/header', { title: 'ผลการเลือกตั้ง' }) %>
+
+<div class="page-header mb-6">
+  <h1 class="text-2xl font-bold text-gray-800">ผลการเลือกตั้ง</h1>
+  <p class="text-gray-500 text-sm mt-1">ข้อมูลผลคะแนนแบบ real-time</p>
+</div>
+
+<!-- สถิติสรุป -->
+<div class="grid grid-cols-3 gap-4 mb-6">
+  <div class="stat-card">
+    <div class="stat-label">ผู้มีสิทธิ์</div>
+    <div class="stat-value"><%= totalVoters %></div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-label">โหวตแล้ว</div>
+    <div class="stat-value"><%= totalVotes %></div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-label">% มาใช้สิทธิ์</div>
+    <div class="stat-value text-mfu-maroon"><%= pct %>%</div>
+  </div>
+</div>
+
+<!-- ช่องค้นหา -->
+<form method="GET" action="/voter/results" class="mb-4">
+  <div class="search-bar">
+    <input type="text" name="search" placeholder="ค้นหาผู้สมัคร..."
+           value="<%= search %>" class="flex-1 bg-transparent outline-none text-sm" />
+    <button type="submit" class="text-gray-400 hover:text-gray-600 text-sm">ค้นหา</button>
+    <% if (search) { %><a href="/voter/results" class="text-xs text-red-400">✕</a><% } %>
+  </div>
+</form>
+
+<!-- รายชื่อผู้สมัครพร้อมคะแนน -->
+<div class="mfu-card">
+  <% if (candidates.length === 0) { %>
+    <p class="text-center text-gray-400 py-8">ไม่พบข้อมูลผู้สมัคร</p>
+  <% } else { %>
+    <% candidates.forEach((c, i) => {
+         const pct = totalVotes > 0 ? ((c.vote_count / totalVotes) * 100).toFixed(1) : '0.0';
+    %>
+      <div class="mb-4 pb-4 border-b border-gray-100 last:border-0">
+        <div class="flex items-center justify-between mb-2">
+          <div class="flex items-center gap-3">
+            <!-- rank badge -->
+            <% if (i === 0 && c.vote_count > 0) { %>
+              <span class="text-2xl">🥇</span>
+            <% } else if (i === 1 && c.vote_count > 0) { %>
+              <span class="text-2xl">🥈</span>
+            <% } else if (i === 2 && c.vote_count > 0) { %>
+              <span class="text-2xl">🥉</span>
+            <% } else { %>
+              <span class="text-gray-400 text-sm w-7 text-center">#<%= i+1 %></span>
+            <% } %>
+            <div class="avatar"><%= c.number %></div>
+            <div>
+              <div class="font-medium text-gray-800"><%= c.full_name || `ผู้สมัคร ${c.candidate_id}` %></div>
+              <div class="text-xs text-gray-400">หมายเลข <%= c.number %></div>
+            </div>
+          </div>
+          <div class="text-right">
+            <div class="font-bold text-lg text-mfu-maroon"><%= c.vote_count %></div>
+            <div class="text-xs text-gray-400"><%= pct %>%</div>
+          </div>
+        </div>
+        <!-- แถบ progress คะแนน -->
+        <div class="vote-bar">
+          <div class="vote-fill" style="width: <%= pct %>%"></div>
+        </div>
+      </div>
+    <% }) %>
+  <% } %>
+</div>
+
+<%- include('../partials/footer') %>

@@ -1,0 +1,154 @@
+<%- include('../partials/header', { title: 'หน้าหลักผู้ลงคะแนน' }) %>
+
+<!-- Page Header + สถานะการโหวต -->
+<div class="page-header mb-6 flex items-center justify-between flex-wrap gap-3">
+  <div>
+    <h1 class="text-2xl font-bold text-gray-800">หน้าหลัก</h1>
+    <p class="text-gray-500 text-sm mt-1">บัตรประชาชน: <%= session.citizen_id %></p>
+  </div>
+  <!-- badge แสดงสถานะการโหวต -->
+  <% if (voter.has_voted) { %>
+    <div class="flex items-center gap-2">
+      <span class="badge-ok text-base px-4 py-2">✓ โหวตแล้ว</span>
+    </div>
+  <% } else if (votingEnabled) { %>
+    <span class="badge-warn text-sm px-3 py-1.5">ยังไม่ได้โหวต</span>
+  <% } else { %>
+    <span class="badge-dis text-sm px-3 py-1.5">ปิดรับโหวต</span>
+  <% } %>
+</div>
+
+<!-- สถิติรวม -->
+<div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+  <div class="stat-card">
+    <div class="stat-label">ผู้มีสิทธิ์โหวต</div>
+    <div class="stat-value"><%= totalVoters %></div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-label">ผู้สมัคร</div>
+    <div class="stat-value"><%= totalCandidates %></div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-label">โหวตแล้ว</div>
+    <div class="stat-value"><%= totalVotes %></div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-label">% มาใช้สิทธิ์</div>
+    <div class="stat-value text-mfu-maroon"><%= pct %>%</div>
+  </div>
+</div>
+
+<!-- Banner แจ้งปิดรับโหวต -->
+<% if (!votingEnabled) { %>
+  <div class="flash-err mb-6">ขณะนี้ปิดรับโหวต กรุณารอการประกาศเปิดโหวต</div>
+<% } %>
+
+<!-- ช่องค้นหาผู้สมัคร -->
+<form method="GET" action="/voter/dashboard" class="mb-4">
+  <div class="search-bar">
+    <input type="text" name="search" placeholder="ค้นหาผู้สมัคร..."
+           value="<%= search %>" class="flex-1 bg-transparent outline-none text-sm" />
+    <button type="submit" class="text-gray-400 hover:text-gray-600 text-sm">ค้นหา</button>
+    <% if (search) { %><a href="/voter/dashboard" class="text-xs text-red-400">✕</a><% } %>
+  </div>
+</form>
+
+<!-- รายชื่อผู้สมัคร -->
+<div class="space-y-4">
+  <% if (candidates.length === 0) { %>
+    <div class="mfu-card text-center text-gray-400 py-12">ไม่พบผู้สมัคร</div>
+  <% } else { %>
+    <% candidates.forEach((c, i) => {
+         const pct = totalVotesNum > 0 ? ((c.vote_count / totalVotesNum) * 100).toFixed(1) : '0.0';
+    %>
+      <div class="mfu-card">
+        <div class="flex items-start justify-between gap-4">
+          <div class="flex items-start gap-4 flex-1">
+            <!-- rank badge + avatar -->
+            <div class="flex flex-col items-center gap-1">
+              <% if (i === 0 && c.vote_count > 0) { %>
+                <span class="text-lg">🥇</span>
+              <% } else if (i === 1 && c.vote_count > 0) { %>
+                <span class="text-lg">🥈</span>
+              <% } else if (i === 2 && c.vote_count > 0) { %>
+                <span class="text-lg">🥉</span>
+              <% } else { %>
+                <span class="text-gray-400 text-sm">#<%= i+1 %></span>
+              <% } %>
+              <div class="avatar"><%= c.number %></div>
+            </div>
+            <!-- ข้อมูลผู้สมัคร -->
+            <div class="flex-1">
+              <div class="font-semibold text-gray-800 text-lg"><%= c.full_name || `ผู้สมัคร ${c.candidate_id}` %></div>
+              <div class="text-xs text-gray-400 mb-2">หมายเลข <%= c.number %> &nbsp;|&nbsp; <%= c.candidate_id %></div>
+              <!-- นโยบาย (ตัดสั้น 2 บรรทัด) -->
+              <% if (c.policy) { %>
+                <p class="text-gray-600 text-sm line-clamp-2"><%= c.policy %></p>
+              <% } else { %>
+                <p class="text-gray-300 text-sm italic">ยังไม่มีนโยบาย</p>
+              <% } %>
+              <!-- progress bar คะแนน -->
+              <div class="mt-3">
+                <div class="flex justify-between text-xs text-gray-400 mb-1">
+                  <span><%= c.vote_count %> คะแนน</span>
+                  <span><%= pct %>%</span>
+                </div>
+                <div class="vote-bar">
+                  <div class="vote-fill" style="width: <%= pct %>%"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- ปุ่มโหวต (แสดงเฉพาะเมื่อยังไม่ได้โหวตและเปิดรับโหวต) -->
+          <% if (!voter.has_voted && votingEnabled) { %>
+            <!-- เปิด dialog ยืนยันก่อนโหวต -->
+            <button onclick="confirmVote(<%= c.id %>, '<%= c.full_name || c.candidate_id %>')"
+                    class="btn-primary whitespace-nowrap">โหวต</button>
+          <% } %>
+        </div>
+      </div>
+    <% }) %>
+  <% } %>
+</div>
+
+<!-- Dialog ยืนยันการโหวต (ซ่อนไว้ก่อน) -->
+<div id="vote-dialog" class="hidden fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+  <div class="mfu-card max-w-sm w-full text-center">
+    <div class="text-4xl mb-3">🗳</div>
+    <h3 class="text-lg font-bold text-gray-800 mb-2">ยืนยันการลงคะแนน</h3>
+    <p class="text-gray-600 text-sm mb-1">คุณต้องการลงคะแนนให้</p>
+    <p class="font-semibold text-mfu-maroon text-lg mb-4" id="vote-name"></p>
+    <p class="text-xs text-gray-400 mb-6">⚠️ ไม่สามารถแก้ไขหรือยกเลิกได้หลังจากยืนยัน</p>
+    <!-- form ที่ซ่อน: submit เมื่อกด "ยืนยัน" -->
+    <form method="POST" action="/voter/cast-vote" id="vote-form">
+      <input type="hidden" name="csrf_token"   value="<%= csrf_token %>" />
+      <input type="hidden" name="candidate_id" id="vote-candidate-id" />
+      <div class="flex gap-3 justify-center">
+        <button type="submit" class="btn-primary">ยืนยันโหวต</button>
+        <button type="button" onclick="closeVoteDialog()" class="btn-outline">ยกเลิก</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+  // เปิด dialog ยืนยันการโหวต พร้อมแสดงชื่อผู้สมัคร
+  function confirmVote(candidateId, candidateName) {
+    document.getElementById('vote-candidate-id').value = candidateId;
+    document.getElementById('vote-name').textContent   = candidateName;
+    document.getElementById('vote-dialog').classList.remove('hidden');
+  }
+
+  // ปิด dialog โดยไม่โหวต
+  function closeVoteDialog() {
+    document.getElementById('vote-dialog').classList.add('hidden');
+  }
+
+  // กด Escape เพื่อปิด dialog
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape') closeVoteDialog();
+  });
+</script>
+
+<%- include('../partials/footer') %>
