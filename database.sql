@@ -60,17 +60,17 @@ ON DUPLICATE KEY UPDATE setting_value = setting_value;
 -- Admin: username=admin, password=admin123
 -- Candidate login: C-0001 / pass1234
 
-INSERT IGNORE INTO candidates (candidate_id, password_hash, full_name, email, policy, number, is_registered, is_enabled) VALUES
-('C-0001', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'นายกฤษณะ สุขใจ',     'krishna@gmail.com', 'พัฒนาระบบ Wi-Fi มหาวิทยาลัย เพิ่มพื้นที่นั่งเรียนและพื้นที่ทำงานกลุ่ม', 1, 1, 1),
-('C-0002', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'นางสาวพิมพ์ใจ แก้วงาม','pimjai@gmail.com',  'เพิ่มทุนการศึกษา ลดค่าธรรมเนียมนักศึกษา',                               2, 1, 1),
-('C-0003', NULL,                                                              NULL,                  NULL,                NULL,                                                                      3, 0, 1),
-('C-0004', NULL,                                                              NULL,                  NULL,                NULL,                                                                      4, 0, 1),
-('C-0005', NULL,                                                              NULL,                  NULL,                NULL,                                                                      5, 0, 1);
+-- INSERT IGNORE INTO candidates (candidate_id, password_hash, full_name, email, policy, number, is_registered, is_enabled) VALUES
+-- ('C-0001', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'นายกฤษณะ สุขใจ',     'krishna@gmail.com', 'พัฒนาระบบ Wi-Fi มหาวิทยาลัย เพิ่มพื้นที่นั่งเรียนและพื้นที่ทำงานกลุ่ม', 1, 1, 1),
+-- ('C-0002', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'นางสาวพิมพ์ใจ แก้วงาม','pimjai@gmail.com',  'เพิ่มทุนการศึกษา ลดค่าธรรมเนียมนักศึกษา',                               2, 1, 1),
+-- ('C-0003', NULL,                                                              NULL,                  NULL,                NULL,                                                                      3, 0, 1),
+-- ('C-0004', NULL,                                                              NULL,                  NULL,                NULL,                                                                      4, 0, 1),
+-- ('C-0005', NULL,                                                              NULL,                  NULL,                NULL,                                                                      5, 0, 1);
 
 -- Note: The password hash above is for "password" (PHP default test hash).
 -- Use actual bcrypt hashes in production: password_hash('yourpassword', PASSWORD_BCRYPT)
 
-INSERT IGNORE INTO voters (citizen_id, laser_id, is_enabled) VALUES
-('1234567890123', 'AA0-0000001-00', 1),
-('9876543210987', 'BB0-0000002-00', 1),
-('1111111111111', 'CC0-0000003-00', 1);
+-- INSERT IGNORE INTO voters (citizen_id, laser_id, is_enabled) VALUES
+-- ('1234567890123', 'AA0-0000001-00', 1),
+-- ('9876543210987', 'BB0-0000002-00', 1),
+-- ('1111111111111', 'CC0-0000003-00', 1);
