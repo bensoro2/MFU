@@ -8,18 +8,6 @@
     { "key": "base_url",    "value": "http://localhost:3000" },
     { "key": "csrf_token",  "value": "" }
   ],
-  "event": [
-    {
-      "listen": "prerequest",
-      "script": {
-        "type": "text/javascript",
-        "exec": [
-          "// Auto-inject csrf_token จาก collection variable ลงใน body ทุก request",
-          "// (ไม่ต้องแก้ทุก request ด้วยตัวเอง)"
-        ]
-      }
-    }
-  ],
   "item": [
     {
       "name": "0. Setup — ดึง CSRF Token",
@@ -70,12 +58,12 @@
             "body": {
               "mode": "urlencoded",
               "urlencoded": [
-                { "key": "username",   "value": "admin",         "type": "text" },
-                { "key": "password",   "value": "admin123",      "type": "text" },
+                { "key": "username",   "value": "admin",          "type": "text" },
+                { "key": "password",   "value": "admin123",       "type": "text" },
                 { "key": "csrf_token", "value": "{{csrf_token}}", "type": "text" }
               ]
             },
-            "description": "Response: { success, role, csrf_token }\nหลัง login csrf_token ใหม่จะถูกส่งมาด้วย ให้อัปเดต collection variable"
+            "description": "Response: { success, role, csrf_token }"
           }
         },
         {
@@ -112,8 +100,8 @@
             "body": {
               "mode": "urlencoded",
               "urlencoded": [
-                { "key": "candidate_code", "value": "C-0001",       "type": "text" },
-                { "key": "password",       "value": "password123",  "type": "text" },
+                { "key": "candidate_code", "value": "C-0001",        "type": "text" },
+                { "key": "password",       "value": "password123",   "type": "text" },
                 { "key": "csrf_token",     "value": "{{csrf_token}}","type": "text" }
               ]
             },
@@ -133,12 +121,12 @@
             "body": {
               "mode": "urlencoded",
               "urlencoded": [
-                { "key": "candidate_code",  "value": "C-0001",          "type": "text" },
-                { "key": "full_name",        "value": "นายสมชาย ใจดี",  "type": "text" },
-                { "key": "email",            "value": "somchai@gmail.com","type": "text" },
-                { "key": "password",         "value": "password123",     "type": "text" },
-                { "key": "password_confirm", "value": "password123",     "type": "text" },
-                { "key": "csrf_token",       "value": "{{csrf_token}}",  "type": "text" }
+                { "key": "candidate_code",  "value": "C-0003",            "type": "text" },
+                { "key": "full_name",        "value": "นายสมชาย ใจดี",   "type": "text" },
+                { "key": "email",            "value": "somchai@gmail.com", "type": "text" },
+                { "key": "password",         "value": "password123",       "type": "text" },
+                { "key": "password_confirm", "value": "password123",       "type": "text" },
+                { "key": "csrf_token",       "value": "{{csrf_token}}",    "type": "text" }
               ]
             },
             "description": "ลงทะเบียนครั้งแรก (admin ต้องเพิ่ม candidate_id ไว้ก่อน)\nResponse: { success, message }"
@@ -172,7 +160,7 @@
               "host": ["{{base_url}}"],
               "path": ["api", "admin", "dashboard"]
             },
-            "description": "Response: { success, data: { stats, votingEnabled, registrationEnabled, topCandidates } }"
+            "description": "Response: { success, data: { stats, votingEnabled, registrationEnabled, topCandidates[] } }"
           }
         },
         {
@@ -202,8 +190,8 @@
             "body": {
               "mode": "urlencoded",
               "urlencoded": [
-                { "key": "candidate_id", "value": "C-0001",       "type": "text" },
-                { "key": "number",       "value": "1",             "type": "text" },
+                { "key": "candidate_id", "value": "C-0006",        "type": "text" },
+                { "key": "number",       "value": "6",              "type": "text" },
                 { "key": "csrf_token",   "value": "{{csrf_token}}","type": "text" }
               ]
             },
@@ -211,41 +199,79 @@
           }
         },
         {
-          "name": "POST /api/admin/toggle-candidate (enable)",
+          "name": "PUT /api/admin/candidates/:id",
           "request": {
-            "method": "POST",
+            "method": "PUT",
             "header": [],
             "url": {
-              "raw": "{{base_url}}/api/admin/toggle-candidate",
+              "raw": "{{base_url}}/api/admin/candidates/1",
               "host": ["{{base_url}}"],
-              "path": ["api", "admin", "toggle-candidate"]
+              "path": ["api", "admin", "candidates", "1"]
             },
             "body": {
               "mode": "urlencoded",
               "urlencoded": [
-                { "key": "id",         "value": "1",             "type": "text" },
-                { "key": "action",     "value": "enable",        "type": "text" },
-                { "key": "csrf_token", "value": "{{csrf_token}}","type": "text" }
+                { "key": "candidate_id", "value": "C-0001",        "type": "text" },
+                { "key": "number",       "value": "1",              "type": "text" },
+                { "key": "csrf_token",   "value": "{{csrf_token}}","type": "text" }
               ]
             },
-            "description": "action: enable | disable\nResponse: { success, message }"
+            "description": "แก้ไข candidate_id และ number — id อยู่ใน URL path\nResponse: { success, message }"
           }
         },
         {
-          "name": "POST /api/admin/toggle-candidate (disable)",
+          "name": "DELETE /api/admin/candidates/:id",
           "request": {
-            "method": "POST",
+            "method": "DELETE",
             "header": [],
             "url": {
-              "raw": "{{base_url}}/api/admin/toggle-candidate",
+              "raw": "{{base_url}}/api/admin/candidates/1",
               "host": ["{{base_url}}"],
-              "path": ["api", "admin", "toggle-candidate"]
+              "path": ["api", "admin", "candidates", "1"]
             },
             "body": {
               "mode": "urlencoded",
               "urlencoded": [
-                { "key": "id",         "value": "1",             "type": "text" },
-                { "key": "action",     "value": "disable",       "type": "text" },
+                { "key": "csrf_token", "value": "{{csrf_token}}", "type": "text" }
+              ]
+            },
+            "description": "ลบผู้สมัคร — id อยู่ใน URL path (ลบไม่ได้ถ้ามีโหวตอยู่)\nResponse: { success, message }"
+          }
+        },
+        {
+          "name": "PATCH /api/admin/candidates/:id/toggle (enable)",
+          "request": {
+            "method": "PATCH",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/admin/candidates/1/toggle",
+              "host": ["{{base_url}}"],
+              "path": ["api", "admin", "candidates", "1", "toggle"]
+            },
+            "body": {
+              "mode": "urlencoded",
+              "urlencoded": [
+                { "key": "action",     "value": "enable",         "type": "text" },
+                { "key": "csrf_token", "value": "{{csrf_token}}","type": "text" }
+              ]
+            },
+            "description": "action: enable | disable — id อยู่ใน URL path\nResponse: { success, message }"
+          }
+        },
+        {
+          "name": "PATCH /api/admin/candidates/:id/toggle (disable)",
+          "request": {
+            "method": "PATCH",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/admin/candidates/1/toggle",
+              "host": ["{{base_url}}"],
+              "path": ["api", "admin", "candidates", "1", "toggle"]
+            },
+            "body": {
+              "mode": "urlencoded",
+              "urlencoded": [
+                { "key": "action",     "value": "disable",        "type": "text" },
                 { "key": "csrf_token", "value": "{{csrf_token}}","type": "text" }
               ]
             }
@@ -281,8 +307,8 @@
             "body": {
               "mode": "urlencoded",
               "urlencoded": [
-                { "key": "citizen_id", "value": "1234567890123",  "type": "text" },
-                { "key": "laser_id",   "value": "AA0-0000001-00", "type": "text" },
+                { "key": "citizen_id", "value": "5555555555555",  "type": "text" },
+                { "key": "laser_id",   "value": "ZZ0-0000005-00", "type": "text" },
                 { "key": "csrf_token", "value": "{{csrf_token}}",  "type": "text" }
               ]
             },
@@ -290,40 +316,79 @@
           }
         },
         {
-          "name": "POST /api/admin/toggle-voter (enable)",
+          "name": "PUT /api/admin/voters/:id",
           "request": {
-            "method": "POST",
+            "method": "PUT",
             "header": [],
             "url": {
-              "raw": "{{base_url}}/api/admin/toggle-voter",
+              "raw": "{{base_url}}/api/admin/voters/1",
               "host": ["{{base_url}}"],
-              "path": ["api", "admin", "toggle-voter"]
+              "path": ["api", "admin", "voters", "1"]
             },
             "body": {
               "mode": "urlencoded",
               "urlencoded": [
-                { "key": "id",         "value": "1",             "type": "text" },
-                { "key": "action",     "value": "enable",        "type": "text" },
-                { "key": "csrf_token", "value": "{{csrf_token}}","type": "text" }
+                { "key": "citizen_id", "value": "1234567890123",  "type": "text" },
+                { "key": "laser_id",   "value": "AA0-0000001-00", "type": "text" },
+                { "key": "csrf_token", "value": "{{csrf_token}}",  "type": "text" }
               ]
-            }
+            },
+            "description": "แก้ไข citizen_id และ laser_id — id อยู่ใน URL path\nResponse: { success, message }"
           }
         },
         {
-          "name": "POST /api/admin/toggle-voter (disable)",
+          "name": "DELETE /api/admin/voters/:id",
           "request": {
-            "method": "POST",
+            "method": "DELETE",
             "header": [],
             "url": {
-              "raw": "{{base_url}}/api/admin/toggle-voter",
+              "raw": "{{base_url}}/api/admin/voters/1",
               "host": ["{{base_url}}"],
-              "path": ["api", "admin", "toggle-voter"]
+              "path": ["api", "admin", "voters", "1"]
             },
             "body": {
               "mode": "urlencoded",
               "urlencoded": [
-                { "key": "id",         "value": "1",             "type": "text" },
-                { "key": "action",     "value": "disable",       "type": "text" },
+                { "key": "csrf_token", "value": "{{csrf_token}}", "type": "text" }
+              ]
+            },
+            "description": "ลบผู้มีสิทธิ์โหวต — id อยู่ใน URL path (ลบไม่ได้ถ้าโหวตไปแล้ว)\nResponse: { success, message }"
+          }
+        },
+        {
+          "name": "PATCH /api/admin/voters/:id/toggle (enable)",
+          "request": {
+            "method": "PATCH",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/admin/voters/1/toggle",
+              "host": ["{{base_url}}"],
+              "path": ["api", "admin", "voters", "1", "toggle"]
+            },
+            "body": {
+              "mode": "urlencoded",
+              "urlencoded": [
+                { "key": "action",     "value": "enable",         "type": "text" },
+                { "key": "csrf_token", "value": "{{csrf_token}}","type": "text" }
+              ]
+            },
+            "description": "action: enable | disable — id อยู่ใน URL path\nResponse: { success, message }"
+          }
+        },
+        {
+          "name": "PATCH /api/admin/voters/:id/toggle (disable)",
+          "request": {
+            "method": "PATCH",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/admin/voters/1/toggle",
+              "host": ["{{base_url}}"],
+              "path": ["api", "admin", "voters", "1", "toggle"]
+            },
+            "body": {
+              "mode": "urlencoded",
+              "urlencoded": [
+                { "key": "action",     "value": "disable",        "type": "text" },
                 { "key": "csrf_token", "value": "{{csrf_token}}","type": "text" }
               ]
             }
@@ -342,9 +407,9 @@
             "body": {
               "mode": "urlencoded",
               "urlencoded": [
-                { "key": "setting",    "value": "voting_enabled", "type": "text" },
-                { "key": "value",      "value": "1",              "type": "text" },
-                { "key": "csrf_token", "value": "{{csrf_token}}","type": "text" }
+                { "key": "setting",    "value": "voting_enabled",  "type": "text" },
+                { "key": "value",      "value": "1",               "type": "text" },
+                { "key": "csrf_token", "value": "{{csrf_token}}",  "type": "text" }
               ]
             },
             "description": "setting: voting_enabled | registration_enabled\nvalue: 1=เปิด, ว่าง=ปิด\nResponse: { success, message, setting, value }"
@@ -363,9 +428,9 @@
             "body": {
               "mode": "urlencoded",
               "urlencoded": [
-                { "key": "setting",    "value": "registration_enabled","type": "text" },
-                { "key": "value",      "value": "1",                   "type": "text" },
-                { "key": "csrf_token", "value": "{{csrf_token}}",      "type": "text" }
+                { "key": "setting",    "value": "registration_enabled", "type": "text" },
+                { "key": "value",      "value": "1",                    "type": "text" },
+                { "key": "csrf_token", "value": "{{csrf_token}}",       "type": "text" }
               ]
             }
           }
@@ -416,24 +481,24 @@
           }
         },
         {
-          "name": "POST /api/candidate/update-profile",
+          "name": "PUT /api/candidate/profile",
           "request": {
-            "method": "POST",
+            "method": "PUT",
             "header": [],
             "url": {
-              "raw": "{{base_url}}/api/candidate/update-profile",
+              "raw": "{{base_url}}/api/candidate/profile",
               "host": ["{{base_url}}"],
-              "path": ["api", "candidate", "update-profile"]
+              "path": ["api", "candidate", "profile"]
             },
             "body": {
               "mode": "urlencoded",
               "urlencoded": [
-                { "key": "full_name",  "value": "นายสมชาย ใจดี",                            "type": "text" },
-                { "key": "policy",     "value": "นโยบาย: พัฒนามหาวิทยาลัย เพิ่มสวัสดิการ", "type": "text" },
-                { "key": "csrf_token", "value": "{{csrf_token}}",                             "type": "text" }
+                { "key": "full_name",  "value": "นายสมชาย ใจดี",                             "type": "text" },
+                { "key": "policy",     "value": "นโยบาย: พัฒนามหาวิทยาลัย เพิ่มสวัสดิการ",  "type": "text" },
+                { "key": "csrf_token", "value": "{{csrf_token}}",                              "type": "text" }
               ]
             },
-            "description": "Response: { success, message }"
+            "description": "อัปเดตโปรไฟล์ผู้สมัคร\nResponse: { success, message }"
           }
         },
         {
@@ -482,11 +547,11 @@
             "body": {
               "mode": "urlencoded",
               "urlencoded": [
-                { "key": "candidate_id", "value": "1",             "type": "text", "description": "id (primary key) ของผู้สมัคร" },
-                { "key": "csrf_token",   "value": "{{csrf_token}}","type": "text" }
+                { "key": "candidate_id", "value": "1",              "type": "text", "description": "id (PK) ของผู้สมัคร ไม่ใช่ C-XXXX" },
+                { "key": "csrf_token",   "value": "{{csrf_token}}", "type": "text" }
               ]
             },
-            "description": "candidate_id = id (PK) ของ candidates table ไม่ใช่ C-XXXX\nResponse: { success, message }"
+            "description": "candidate_id = id (PK) ของ candidates table\nResponse: { success, message }"
           }
         },
         {

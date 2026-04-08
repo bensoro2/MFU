@@ -299,9 +299,9 @@ router.post('/admin/add-candidate', apiRequireRole('admin'), verifyCsrf, async (
   }
 });
 
-// POST /api/admin/edit-candidate
-router.post('/admin/edit-candidate', apiRequireRole('admin'), verifyCsrf, async (req, res) => {
-  const id           = parseInt(req.body.id);
+// PUT /api/admin/candidates/:id
+router.put('/admin/candidates/:id', apiRequireRole('admin'), verifyCsrf, async (req, res) => {
+  const id           = parseInt(req.params.id);
   const candidate_id = (req.body.candidate_id || '').trim().toUpperCase();
   const number       = parseInt(req.body.number);
 
@@ -328,9 +328,9 @@ router.post('/admin/edit-candidate', apiRequireRole('admin'), verifyCsrf, async 
   }
 });
 
-// POST /api/admin/delete-candidate
-router.post('/admin/delete-candidate', apiRequireRole('admin'), verifyCsrf, async (req, res) => {
-  const id = parseInt(req.body.id);
+// DELETE /api/admin/candidates/:id
+router.delete('/admin/candidates/:id', apiRequireRole('admin'), verifyCsrf, async (req, res) => {
+  const id = parseInt(req.params.id);
   if (!id) return res.status(400).json({ success: false, message: 'ข้อมูลไม่ถูกต้อง' });
 
   try {
@@ -348,13 +348,13 @@ router.post('/admin/delete-candidate', apiRequireRole('admin'), verifyCsrf, asyn
   }
 });
 
-// POST /api/admin/toggle-candidate
-router.post('/admin/toggle-candidate', apiRequireRole('admin'), verifyCsrf, async (req, res) => {
-  const id     = parseInt(req.body.id);
+// PATCH /api/admin/candidates/:id/toggle
+router.patch('/admin/candidates/:id/toggle', apiRequireRole('admin'), verifyCsrf, async (req, res) => {
+  const id     = parseInt(req.params.id);
   const action = req.body.action;
 
   if (!id || !['enable', 'disable'].includes(action)) {
-    return res.status(400).json({ success: false, message: 'ข้อมูลไม่ถูกต้อง (id และ action: enable|disable)' });
+    return res.status(400).json({ success: false, message: 'ข้อมูลไม่ถูกต้อง (action: enable|disable)' });
   }
 
   try {
@@ -431,9 +431,9 @@ router.post('/admin/add-voter', apiRequireRole('admin'), verifyCsrf, async (req,
   }
 });
 
-// POST /api/admin/edit-voter
-router.post('/admin/edit-voter', apiRequireRole('admin'), verifyCsrf, async (req, res) => {
-  const id         = parseInt(req.body.id);
+// PUT /api/admin/voters/:id
+router.put('/admin/voters/:id', apiRequireRole('admin'), verifyCsrf, async (req, res) => {
+  const id         = parseInt(req.params.id);
   const citizen_id = (req.body.citizen_id || '').replace(/\s+/g, '');
   const laser_id   = (req.body.laser_id   || '').trim().toUpperCase();
 
@@ -458,9 +458,9 @@ router.post('/admin/edit-voter', apiRequireRole('admin'), verifyCsrf, async (req
   }
 });
 
-// POST /api/admin/delete-voter
-router.post('/admin/delete-voter', apiRequireRole('admin'), verifyCsrf, async (req, res) => {
-  const id = parseInt(req.body.id);
+// DELETE /api/admin/voters/:id
+router.delete('/admin/voters/:id', apiRequireRole('admin'), verifyCsrf, async (req, res) => {
+  const id = parseInt(req.params.id);
   if (!id) return res.status(400).json({ success: false, message: 'ข้อมูลไม่ถูกต้อง' });
 
   try {
@@ -477,13 +477,13 @@ router.post('/admin/delete-voter', apiRequireRole('admin'), verifyCsrf, async (r
   }
 });
 
-// POST /api/admin/toggle-voter
-router.post('/admin/toggle-voter', apiRequireRole('admin'), verifyCsrf, async (req, res) => {
-  const id     = parseInt(req.body.id);
+// PATCH /api/admin/voters/:id/toggle
+router.patch('/admin/voters/:id/toggle', apiRequireRole('admin'), verifyCsrf, async (req, res) => {
+  const id     = parseInt(req.params.id);
   const action = req.body.action;
 
   if (!id || !['enable', 'disable'].includes(action)) {
-    return res.status(400).json({ success: false, message: 'ข้อมูลไม่ถูกต้อง (id และ action: enable|disable)' });
+    return res.status(400).json({ success: false, message: 'ข้อมูลไม่ถูกต้อง (action: enable|disable)' });
   }
 
   try {
@@ -612,8 +612,8 @@ router.get('/candidate/profile', apiRequireRole('candidate'), async (req, res) =
   }
 });
 
-// POST /api/candidate/update-profile
-router.post('/candidate/update-profile', apiRequireRole('candidate'), verifyCsrf, async (req, res) => {
+// PUT /api/candidate/profile
+router.put('/candidate/profile', apiRequireRole('candidate'), verifyCsrf, async (req, res) => {
   const full_name = (req.body.full_name || '').trim();
   const policy    = (req.body.policy    || '').trim();
 

@@ -184,7 +184,7 @@ router.post('/candidate-register', verifyCsrf, async (req, res) => {
       [hash, full_name, email, candidate_code]
     );
 
-    req.session.flash_success = 'ลงทะเบียนสำเร็จ กรุณาเข้าสู่ระบบ';
+    req.session.flash_success = `ลงทะเบียนสำเร็จ! คุณได้รับหมายเลขผู้สมัคร เบอร์ ${rows[0].number} กรุณาเข้าสู่ระบบ`;
     res.redirect('/login?tab=candidate');
   } catch (err) {
     console.error('candidate-register error:', err);
