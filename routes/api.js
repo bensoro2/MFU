@@ -269,30 +269,20 @@ router.get('/admin/candidates', apiRequireRole('admin'), async (req, res) => {
 
 // POST /api/admin/add-candidate
 router.post('/admin/add-candidate', apiRequireRole('admin'), verifyCsrf, async (req, res) => {
-  const candidate_id = (req.body.candidate_id || '').trim().toUpperCase();
-  const number       = parseInt(req.body.number);
-
-  if (!/^C-\d{4}$/.test(candidate_id)) {
-    return res.status(400).json({ success: false, message: 'รูปแบบ Candidate ID ไม่ถูกต้อง (ตัวอย่าง: C-0001)' });
-  }
-
-  if (isNaN(number) || number < 1 || number > 99) {
-    return res.status(400).json({ success: false, message: 'หมายเลขผู้สมัครต้องอยู่ระหว่าง 1–99' });
-  }
-
   try {
-    const [[existId]] = await db.execute('SELECT id FROM candidates WHERE candidate_id = ?', [candidate_id]);
-    if (existId) {
-      return res.status(409).json({ success: false, message: 'Candidate ID นี้มีอยู่แล้ว' });
-    }
+    const [[{ maxCode }]] = await db.execute(
+      "SELECT MAX(CAST(SUBSTRING(candidate_id, 3) AS UNSIGNED)) AS maxCode FROM candidates WHERE candidate_id REGEXP '^C-[0-9]{4}$'"
+    );
+    const nextCode     = (maxCode || 0) + 1;
+    const candidate_id = 'C-' + String(nextCode).padStart(4, '0');
 
-    const [[existNum]] = await db.execute('SELECT id FROM candidates WHERE number = ?', [number]);
-    if (existNum) {
-      return res.status(409).json({ success: false, message: 'หมายเลขผู้สมัครนี้ถูกใช้แล้ว' });
-    }
+    const [[{ maxNumber }]] = await db.execute(
+      'SELECT COALESCE(MAX(number), 0) AS maxNumber FROM candidates'
+    );
+    const number = maxNumber + 1;
 
     await db.execute('INSERT INTO candidates (candidate_id, number) VALUES (?, ?)', [candidate_id, number]);
-    res.status(201).json({ success: true, message: `เพิ่มผู้สมัคร ${candidate_id} สำเร็จ` });
+    res.status(201).json({ success: true, message: `เพิ่มผู้สมัคร ${candidate_id} (เบอร์ ${number}) สำเร็จ`, data: { candidate_id, number } });
   } catch (err) {
     console.error(err);
     res.status(500).json({ success: false, message: 'เกิดข้อผิดพลาดภายในระบบ' });
@@ -301,27 +291,21 @@ router.post('/admin/add-candidate', apiRequireRole('admin'), verifyCsrf, async (
 
 // PUT /api/admin/candidates/:id
 router.put('/admin/candidates/:id', apiRequireRole('admin'), verifyCsrf, async (req, res) => {
-  const id           = parseInt(req.params.id);
-  const candidate_id = (req.body.candidate_id || '').trim().toUpperCase();
-  const number       = parseInt(req.body.number);
+  const id     = parseInt(req.params.id);
+  const number = parseInt(req.body.number);
 
-  if (!id || !/^C-\d{4}$/.test(candidate_id) || isNaN(number) || number < 1 || number > 99) {
-    return res.status(400).json({ success: false, message: 'ข้อมูลไม่ถูกต้อง' });
+  if (!id || isNaN(number) || number < 1 || number > 99) {
+    return res.status(400).json({ success: false, message: 'หมายเลขผู้สมัครต้องอยู่ระหว่าง 1–99' });
   }
 
   try {
-    const [[dupId]] = await db.execute(
-      'SELECT id FROM candidates WHERE candidate_id = ? AND id <> ?', [candidate_id, id]
-    );
-    if (dupId) return res.status(409).json({ success: false, message: 'Candidate ID นี้ถูกใช้แล้ว' });
-
     const [[dupNum]] = await db.execute(
       'SELECT id FROM candidates WHERE number = ? AND id <> ?', [number, id]
     );
     if (dupNum) return res.status(409).json({ success: false, message: 'หมายเลขผู้สมัครนี้ถูกใช้แล้ว' });
 
-    await db.execute('UPDATE candidates SET candidate_id = ?, number = ? WHERE id = ?', [candidate_id, number, id]);
-    res.json({ success: true, message: 'แก้ไขข้อมูลผู้สมัครสำเร็จ' });
+    await db.execute('UPDATE candidates SET number = ? WHERE id = ?', [number, id]);
+    res.json({ success: true, message: 'แก้ไขหมายเลขผู้สมัครสำเร็จ' });
   } catch (err) {
     console.error(err);
     res.status(500).json({ success: false, message: 'เกิดข้อผิดพลาดภายในระบบ' });

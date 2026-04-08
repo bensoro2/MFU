@@ -74,7 +74,7 @@ async function getSetting(key) {
 // async (req, res) => {} = ฟังก์ชันที่รันเมื่อมีคนเข้า URL นี้
 //   req = ข้อมูลที่ browser ส่งมา (query string, session, cookies, ฯลฯ)
 //   res = ตัวที่ใช้ตอบกลับ (render HTML, redirect, ส่ง JSON ฯลฯ)
-router.get('/dashboard', requireRole('admin'), async (req, res) => {
+router.get('/dashboard', requireRole('admin'), async (_req, res) => {
   try {
     // ดึงสถิติรวมทั้งหมดโดยเรียกฟังก์ชัน getStats() ที่นิยามไว้ด้านบน
     const stats               = await getStats();
@@ -174,73 +174,34 @@ router.get('/candidates', requireRole('admin'), async (req, res) => {
 // ------------------------------------------------------------
 // router.post = รับ HTTP POST request (การ submit form จากเบราว์เซอร์)
 router.post('/add-candidate', requireRole('admin'), verifyCsrf, async (req, res) => {
-
-  // ดึงค่า candidate_id จาก form ที่ submit มา
-  // req.body = ข้อมูลที่ส่งมาใน form (ต้องมี express.urlencoded() ใน server.js)
-  // .trim() = ตัดช่องว่างหัวท้าย
-  // .toUpperCase() = แปลงเป็นตัวใหญ่ทั้งหมด เช่น c-0001 → C-0001
   const candidate_id = (req.body.candidate_id || '').trim().toUpperCase();
 
-  // แปลงหมายเลขผู้สมัครจาก string เป็น integer
-  // parseInt('5') = 5, parseInt('abc') = NaN (ไม่ใช่ตัวเลข)
-  const number = parseInt(req.body.number);
-
-  // ตรวจสอบรูปแบบ candidate_id ด้วย Regular Expression
-  // /^C-\d{4}$/ หมายความว่า:
-  //   ^ = ต้องเริ่มต้นด้วย
-  //   C- = ตัวอักษร C ตามด้วยขีด
-  //   \d{4} = ตัวเลข 4 หลักพอดี
-  //   $ = จบที่นี่
-  // .test() = คืน true/false ว่า string ตรงกับ pattern หรือไม่
-  // ! ข้างหน้า = ถ้าไม่ตรงกัน
   if (!/^C-\d{4}$/.test(candidate_id)) {
-    // เก็บข้อความ error ไว้ใน session เพื่อแสดงในหน้าถัดไป (flash message)
     req.session.flash_error = 'รูปแบบ Candidate ID ไม่ถูกต้อง (ตัวอย่าง: C-0001)';
-    // redirect กลับหน้า candidates แล้วหยุดฟังก์ชัน (return)
-    return res.redirect('/admin/candidates');
-  }
-
-  // ตรวจสอบหมายเลขผู้สมัคร:
-  //   isNaN(number) = ถ้า parseInt ไม่สำเร็จ จะได้ NaN
-  //   number < 1 หรือ > 99 = อยู่นอกช่วงที่กำหนด
-  if (isNaN(number) || number < 1 || number > 99) {
-    req.session.flash_error = 'หมายเลขผู้สมัครต้องอยู่ระหว่าง 1–99';
     return res.redirect('/admin/candidates');
   }
 
   try {
-    // ตรวจสอบว่า candidate_id ซ้ำกับที่มีอยู่ในฐานข้อมูลไหม
-    // [[existId]] = ดึงแถวแรกของผลลัพธ์แรก (nested destructuring)
-    // ถ้าไม่เจอ existId จะเป็น undefined (falsy)
     const [[existId]] = await db.execute(
-      'SELECT id FROM candidates WHERE candidate_id = ?',
-      [candidate_id]
+      'SELECT id FROM candidates WHERE candidate_id = ?', [candidate_id]
     );
     if (existId) {
       req.session.flash_error = 'Candidate ID นี้มีอยู่แล้ว';
       return res.redirect('/admin/candidates');
     }
 
-    // ตรวจสอบว่าหมายเลขผู้สมัครซ้ำกับที่มีอยู่ไหม
-    const [[existNum]] = await db.execute(
-      'SELECT id FROM candidates WHERE number = ?',
-      [number]
+    // auto-gen หมายเลขผู้สมัคร: หาค่าสูงสุดแล้ว +1
+    const [[{ maxNumber }]] = await db.execute(
+      'SELECT COALESCE(MAX(number), 0) AS maxNumber FROM candidates'
     );
-    if (existNum) {
-      req.session.flash_error = 'หมายเลขผู้สมัครนี้ถูกใช้แล้ว';
-      return res.redirect('/admin/candidates');
-    }
+    const number = maxNumber + 1;
 
-    // เพิ่มผู้สมัครใหม่ลงฐานข้อมูล
-    // ตอนนี้ยังไม่มีชื่อ/password — รอให้ผู้สมัครมาลงทะเบียนเองที่หน้า login
-    // INSERT INTO ... VALUES (?, ?) = ใส่ค่าตาม ? ด้วย array ด้านหลัง (ปลอดภัยจาก SQL Injection)
     await db.execute(
       'INSERT INTO candidates (candidate_id, number) VALUES (?, ?)',
       [candidate_id, number]
     );
 
-    // แสดงข้อความสำเร็จในหน้าถัดไป (flash success message)
-    req.session.flash_success = `เพิ่มผู้สมัคร ${candidate_id} สำเร็จ`;
+    req.session.flash_success = `เพิ่มผู้สมัคร ${candidate_id} (เบอร์ ${number}) สำเร็จ`;
     res.redirect('/admin/candidates');
   } catch (err) {
     console.error(err);
@@ -254,61 +215,26 @@ router.post('/add-candidate', requireRole('admin'), verifyCsrf, async (req, res)
 // POST /admin/edit-candidate — แก้ไขข้อมูลผู้สมัครที่มีอยู่แล้ว
 // ------------------------------------------------------------
 router.post('/edit-candidate', requireRole('admin'), verifyCsrf, async (req, res) => {
-
-  // รับ id ของผู้สมัครที่ต้องการแก้ไข (ส่งมาจาก hidden input ใน form)
-  const id = parseInt(req.body.id);
-
-  // รับ candidate_id และ number ใหม่ที่ต้องการแก้เป็น
+  const id           = parseInt(req.body.id);
   const candidate_id = (req.body.candidate_id || '').trim().toUpperCase();
-  const number       = parseInt(req.body.number);
 
-  // ถ้า id เป็น 0 หรือ NaN (parseInt ล้มเหลว) แสดงว่าข้อมูลเสีย
-  if (!id) {
-    req.session.flash_error = 'ข้อมูลไม่ถูกต้อง';
-    return res.redirect('/admin/candidates');
-  }
-
-  // ตรวจรูปแบบ candidate_id ต้องเป็น C-XXXX เช่นเดียวกับตอน add
-  if (!/^C-\d{4}$/.test(candidate_id)) {
+  if (!id || !/^C-\d{4}$/.test(candidate_id)) {
     req.session.flash_error = 'รูปแบบ Candidate ID ไม่ถูกต้อง (เช่น C-0001)';
     return res.redirect('/admin/candidates');
   }
 
-  // ตรวจว่าหมายเลขผู้สมัครอยู่ในช่วง 1–99
-  if (isNaN(number) || number < 1 || number > 99) {
-    req.session.flash_error = 'หมายเลขผู้สมัครต้องอยู่ระหว่าง 1–99';
-    return res.redirect('/admin/candidates');
-  }
-
   try {
-    // ตรวจว่า candidate_id ใหม่ไปซ้ำกับ คนอื่น หรือเปล่า
-    // AND id <> ? = ยกเว้นแถวของตัวเอง (ถ้าไม่ยกเว้น จะ error ว่าซ้ำตัวเอง)
-    const [[dupId]] = await db.execute(
+    const [[dup]] = await db.execute(
       'SELECT id FROM candidates WHERE candidate_id = ? AND id <> ?',
       [candidate_id, id]
     );
-    if (dupId) {
+    if (dup) {
       req.session.flash_error = 'Candidate ID นี้ถูกใช้แล้ว';
       return res.redirect('/admin/candidates');
     }
 
-    // ตรวจว่าหมายเลขผู้สมัครใหม่ไปซ้ำกับ คนอื่น หรือเปล่า
-    const [[dupNum]] = await db.execute(
-      'SELECT id FROM candidates WHERE number = ? AND id <> ?',
-      [number, id]
-    );
-    if (dupNum) {
-      req.session.flash_error = 'หมายเลขผู้สมัครนี้ถูกใช้แล้ว';
-      return res.redirect('/admin/candidates');
-    }
-
-    // อัปเดตข้อมูลในฐานข้อมูล
-    // UPDATE ... SET ... WHERE id = ? = แก้เฉพาะแถวที่ id ตรงกัน
-    await db.execute(
-      'UPDATE candidates SET candidate_id = ?, number = ? WHERE id = ?',
-      [candidate_id, number, id]
-    );
-    req.session.flash_success = 'แก้ไขข้อมูลผู้สมัครสำเร็จ';
+    await db.execute('UPDATE candidates SET candidate_id = ? WHERE id = ?', [candidate_id, id]);
+    req.session.flash_success = 'แก้ไข Candidate ID สำเร็จ';
     res.redirect('/admin/candidates');
   } catch (err) {
     console.error(err);

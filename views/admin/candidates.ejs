@@ -14,16 +14,12 @@
   <div id="add-form" class="hidden">
     <form method="POST" action="/admin/add-candidate" class="flex flex-wrap gap-3 items-end">
       <input type="hidden" name="csrf_token" value="<%= csrf_token %>" />
-      <div class="flex-1 min-w-[160px]">
+      <div class="flex-1 min-w-[200px]">
         <label class="block text-xs font-medium text-gray-600 mb-1">Candidate ID (C-XXXX)</label>
         <input type="text" name="candidate_id" placeholder="C-0006" maxlength="6"
                oninput="this.value = this.value.toUpperCase()"
                class="input-field" required />
-      </div>
-      <div class="w-32">
-        <label class="block text-xs font-medium text-gray-600 mb-1">หมายเลขผู้สมัคร</label>
-        <input type="number" name="number" min="1" max="99" placeholder="6"
-               class="input-field" required />
+        <p class="text-xs text-gray-400 mt-1">หมายเลขผู้สมัครจะถูกกำหนดให้อัตโนมัติ</p>
       </div>
       <div class="flex gap-2">
         <button type="submit" class="btn-primary text-sm">เพิ่ม</button>
@@ -139,8 +135,8 @@
       </div>
       <div class="mb-6">
         <label class="block text-sm font-medium text-gray-700 mb-1">หมายเลขผู้สมัคร</label>
-        <input type="number" name="number" id="edit-candidate-number"
-               min="1" max="99" class="input-field" required />
+        <p id="edit-candidate-number-display" class="input-field bg-gray-50 text-gray-500 cursor-not-allowed font-mono text-center"></p>
+        <p class="text-xs text-gray-400 mt-1">หมายเลขถูกกำหนดโดยระบบอัตโนมัติ</p>
       </div>
       <div class="flex gap-3 justify-end">
         <button type="button" onclick="closeEditCandidate()" class="btn-outline">ยกเลิก</button>
@@ -156,9 +152,9 @@
   }
 
   function openEditCandidate(id, code, number) {
-    document.getElementById('edit-candidate-id').value     = id;
-    document.getElementById('edit-candidate-code').value   = code;
-    document.getElementById('edit-candidate-number').value = number;
+    document.getElementById('edit-candidate-id').value                  = id;
+    document.getElementById('edit-candidate-code').value                = code;
+    document.getElementById('edit-candidate-number-display').textContent = number;
     const modal = document.getElementById('modal-edit-candidate');
     modal.classList.remove('hidden');
     modal.classList.add('flex');
@@ -170,7 +166,6 @@
     modal.classList.remove('flex');
   }
 
-  // ปิด modal เมื่อคลิก backdrop
   document.getElementById('modal-edit-candidate').addEventListener('click', function(e) {
     if (e.target === this) closeEditCandidate();
   });
