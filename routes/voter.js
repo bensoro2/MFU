@@ -3,6 +3,16 @@ const router  = express.Router();
 const db      = require('../config/db');
 const { requireRole, verifyCsrf } = require('../middleware/auth');
 
+/**
+ * Routes สำหรับผู้ลงคะแนน (Voter Routes)
+ *
+ * จัดการฟังก์ชันต่างๆ ของผู้มีสิทธิ์โหวต:
+ * - แสดงแดชบอร์ดพร้อมรายชื่อผู้สมัครและสถิติ
+ * - บันทึกการลงคะแนนเสียง
+ * - ดูผลการเลือกตั้ง
+ * - ดูประวัติการโหวตของตัวเอง
+ */
+
 // GET /voter/dashboard — หน้าหลักของผู้มีสิทธิ์โหวต
 router.get('/dashboard', requireRole('voter'), async (req, res) => {
   try {
@@ -12,19 +22,21 @@ router.get('/dashboard', requireRole('voter'), async (req, res) => {
     // ดึงข้อมูลของผู้ลงคะแนนปัจจุบัน
     const [[voter]] = await db.execute('SELECT * FROM voters WHERE id = ?', [voterId]);
 
-    // ตรวจสอบว่าเปิดรับโหวตอยู่หรือไม่
+    // ตรวจสอบว่าเปิดรับโหวตอยู่หรือไม่ จากตาราง settings
     const [[{ setting_value: votingVal }]] = await db.execute(
       "SELECT setting_value FROM settings WHERE setting_key = 'voting_enabled'"
     );
     const votingEnabled = votingVal === '1';
 
-    // ดึงสถิติรวม
+    // ดึงสถิติรวมสำหรับแสดงบนแดชบอร์ด
     const [[{ totalVoters     }]] = await db.execute('SELECT COUNT(*) totalVoters     FROM voters     WHERE is_enabled = 1');
     const [[{ totalVotes      }]] = await db.execute('SELECT COUNT(*) totalVotes      FROM votes');
     const [[{ totalCandidates }]] = await db.execute('SELECT COUNT(*) totalCandidates FROM candidates WHERE is_registered = 1 AND is_enabled = 1');
+    // คำนวณเปอร์เซ็นต์ผู้มาใช้สิทธิ์: (จำนวนโหวตทั้งหมด / จำนวนผู้มีสิทธิ์) * 100
     const pct = totalVoters > 0 ? ((totalVotes / totalVoters) * 100).toFixed(1) : '0.0';
 
-    // ดึงรายชื่อผู้สมัครที่เปิดใช้งานพร้อมคะแนน
+    // ดึงรายชื่อผู้สมัครที่เปิดใช้งานพร้อมคะแนน (vote_count)
+    // vote_count มาจากการนับจำนวนโหวตในตาราง votes ที่ JOIN กับ candidates
     let   query  = `
       SELECT c.id, c.candidate_id, c.full_name, c.number, c.policy,
              COUNT(v.id) AS vote_count
@@ -34,7 +46,7 @@ router.get('/dashboard', requireRole('voter'), async (req, res) => {
     `;
     const params = [];
 
-    // กรองตามคำค้นหา
+    // กรองตามคำค้นหา (ชื่อผู้สมัครหรือรหัสผู้สมัคร)
     if (search) {
       query += ' AND (c.full_name LIKE ? OR c.candidate_id LIKE ?)';
       params.push(`%${search}%`, `%${search}%`);
@@ -48,7 +60,7 @@ router.get('/dashboard', requireRole('voter'), async (req, res) => {
       voter, votingEnabled,
       totalVoters, totalVotes, totalCandidates, pct,
       candidates, search,
-      totalVotesNum: parseInt(totalVotes) // ส่งเป็น number สำหรับคำนวณ %
+      totalVotesNum: parseInt(totalVotes) // ส่งเป็น number สำหรับคำนวณ % ใน view
     });
   } catch (err) {
     console.error(err);
@@ -97,22 +109,23 @@ router.post('/cast-vote', requireRole('voter'), verifyCsrf, async (req, res) => 
     }
 
     // เริ่ม transaction เพื่อให้ทั้ง 2 query สำเร็จหรือล้มเหลวพร้อมกัน
+    // ป้องกันสถานะข้อมูลไม่สอดคล้องกัน (consistency) - ถ้ามีข้อผิดพลาดจะ rollback ทั้งหมด
     await conn.beginTransaction();
-    // บันทึกการโหวตในตาราง votes
+    // บันทึกการโหวตในตาราง votes (เพิ่มเรคอร์ดใหม่)
     await conn.execute('INSERT INTO votes (voter_id, candidate_id) VALUES (?, ?)', [voterId, candidateId]);
-    // อัปเดตสถานะผู้ลงคะแนนว่าโหวตแล้ว
+    // อัปเดตสถานะผู้ลงคะแนนว่าโหวตแล้ว (has_voted = 1) เพื่อป้องกันโหวตซ้ำ
     await conn.execute('UPDATE voters SET has_voted = 1 WHERE id = ?', [voterId]);
-    // ยืนยัน transaction
+    // ยืนยัน transaction - บันทึกข้อมูลถาวรทั้งสองการเปลี่ยนแปลง
     await conn.commit();
 
     req.session.flash_success = 'ลงคะแนนเสียงเรียบร้อยแล้ว';
     res.redirect('/voter/dashboard');
   } catch (err) {
-    // ยกเลิก transaction ถ้าเกิดข้อผิดพลาด
+    // ยกเลิก transaction ถ้าเกิดข้อผิดพลาด (rollback เพื่อไม่ให้ข้อมูลเปลี่ยน)
     await conn.rollback();
 
     if (err.code === 'ER_DUP_ENTRY') {
-      // UNIQUE constraint ถูก violate = โหวตซ้ำที่ระดับ DB (safety net)
+      // UNIQUE constraint ถูก violate = โหวตซ้ำที่ระดับ DB (safety net สำหรับป้องกันโหวตซ้ำ)
       req.session.flash_error = 'คุณโหวตไปแล้ว';
     } else {
       console.error('cast-vote error:', err);
@@ -120,7 +133,7 @@ router.post('/cast-vote', requireRole('voter'), verifyCsrf, async (req, res) => 
     }
     res.redirect('/voter/dashboard');
   } finally {
-    conn.release(); // คืน connection กลับ pool เสมอ
+    conn.release(); // คืน connection กลับ pool เสมอ (สำคัญสำหรับ connection pooling)
   }
 });
 
@@ -128,6 +141,7 @@ router.post('/cast-vote', requireRole('voter'), verifyCsrf, async (req, res) => 
 router.get('/results', requireRole('voter'), async (req, res) => {
   try {
     const search = (req.query.search || '').trim();
+    // ดึงรายชื่อผู้สมัครพร้อมจำนวนโหวต (vote_count) จากการ JOIN กับตาราง votes
     let   query  = `
       SELECT c.id, c.candidate_id, c.full_name, c.number,
              COUNT(v.id) AS vote_count
@@ -146,6 +160,7 @@ router.get('/results', requireRole('voter'), async (req, res) => {
     const [candidates]         = await db.execute(query, params);
     const [[{ totalVotes }]]   = await db.execute('SELECT COUNT(*) totalVotes  FROM votes');
     const [[{ totalVoters }]]  = await db.execute('SELECT COUNT(*) totalVoters FROM voters WHERE is_enabled = 1');
+    // คำนวณเปอร์เซ็นต์ผู้มาใช้สิทธิ์
     const pct = totalVoters > 0 ? ((totalVotes / totalVoters) * 100).toFixed(1) : '0.0';
 
     res.render('voter/results', {
@@ -166,7 +181,8 @@ router.get('/history', requireRole('voter'), async (req, res) => {
   try {
     const voterId = req.session.voter_id;
 
-    // ดึงข้อมูลการโหวต (JOIN กับ candidates เพื่อแสดงรายละเอียดผู้สมัคร)
+    // ดึงข้อมูลการโหวตของผู้ใช้ปัจจุบัน (JOIN กับ candidates เพื่อแสดงรายละเอียดผู้สมัคร)
+    // ถ้ายังไม่ได้โหวต จะได้ array ว่างเปล่า
     const [rows] = await db.execute(`
       SELECT v.voted_at, c.candidate_id, c.full_name, c.number, c.policy
         FROM votes v
@@ -176,7 +192,7 @@ router.get('/history', requireRole('voter'), async (req, res) => {
 
     res.render('voter/history', {
       title: 'ประวัติการโหวต',
-      vote: rows.length ? rows[0] : null // null = ยังไม่ได้โหวต
+      vote: rows.length ? rows[0] : null // null ถ้ายังไม่ได้โหวต, object ถ้าโหวตแล้ว
     });
   } catch (err) {
     console.error(err);
