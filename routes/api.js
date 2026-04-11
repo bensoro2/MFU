@@ -269,20 +269,23 @@ router.get('/admin/candidates', apiRequireRole('admin'), async (req, res) => {
 
 // POST /api/admin/add-candidate
 router.post('/admin/add-candidate', apiRequireRole('admin'), verifyCsrf, async (req, res) => {
+  const candidate_id = (req.body.candidate_id || '').trim().toUpperCase();
+
+  if (!/^C-\d{4}$/.test(candidate_id)) {
+    return res.status(400).json({ success: false, message: 'รูปแบบ Candidate ID ไม่ถูกต้อง (ตัวอย่าง: C-0001)' });
+  }
+
   try {
-    const [[{ maxCode }]] = await db.execute(
-      "SELECT MAX(CAST(SUBSTRING(candidate_id, 3) AS UNSIGNED)) AS maxCode FROM candidates WHERE candidate_id REGEXP '^C-[0-9]{4}$'"
-    );
-    const nextCode     = (maxCode || 0) + 1;
-    const candidate_id = 'C-' + String(nextCode).padStart(4, '0');
+    const [[exist]] = await db.execute('SELECT id FROM candidates WHERE candidate_id = ?', [candidate_id]);
+    if (exist) {
+      return res.status(409).json({ success: false, message: 'Candidate ID นี้มีอยู่แล้ว' });
+    }
 
-    const [[{ maxNumber }]] = await db.execute(
-      'SELECT COALESCE(MAX(number), 0) AS maxNumber FROM candidates'
-    );
-    const number = maxNumber + 1;
+    const [result] = await db.execute('INSERT INTO candidates (candidate_id) VALUES (?)', [candidate_id]);
+    const newId = result.insertId;
+    await db.execute('UPDATE candidates SET number = ? WHERE id = ?', [newId, newId]);
 
-    await db.execute('INSERT INTO candidates (candidate_id, number) VALUES (?, ?)', [candidate_id, number]);
-    res.status(201).json({ success: true, message: `เพิ่มผู้สมัคร ${candidate_id} (เบอร์ ${number}) สำเร็จ`, data: { candidate_id, number } });
+    res.status(201).json({ success: true, message: `เพิ่มผู้สมัคร ${candidate_id} (เบอร์ ${newId}) สำเร็จ`, data: { candidate_id, number: newId } });
   } catch (err) {
     console.error(err);
     res.status(500).json({ success: false, message: 'เกิดข้อผิดพลาดภายในระบบ' });

@@ -190,18 +190,14 @@ router.post('/add-candidate', requireRole('admin'), verifyCsrf, async (req, res)
       return res.redirect('/admin/candidates');
     }
 
-    // auto-gen หมายเลขผู้สมัคร: หาค่าสูงสุดแล้ว +1
-    const [[{ maxNumber }]] = await db.execute(
-      'SELECT COALESCE(MAX(number), 0) AS maxNumber FROM candidates'
+    const [result] = await db.execute(
+      'INSERT INTO candidates (candidate_id) VALUES (?)',
+      [candidate_id]
     );
-    const number = maxNumber + 1;
+    const newId = result.insertId;
+    await db.execute('UPDATE candidates SET number = ? WHERE id = ?', [newId, newId]);
 
-    await db.execute(
-      'INSERT INTO candidates (candidate_id, number) VALUES (?, ?)',
-      [candidate_id, number]
-    );
-
-    req.session.flash_success = `เพิ่มผู้สมัคร ${candidate_id} (เบอร์ ${number}) สำเร็จ`;
+    req.session.flash_success = `เพิ่มผู้สมัคร ${candidate_id} (เบอร์ ${newId}) สำเร็จ`;
     res.redirect('/admin/candidates');
   } catch (err) {
     console.error(err);
