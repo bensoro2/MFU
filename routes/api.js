@@ -191,10 +191,14 @@ router.post('/auth/candidate-register', verifyCsrf, async (req, res) => {
     }
 
     const hash = await bcrypt.hash(password, 10);
+    const [[{ nextNum }]] = await db.execute(
+      'SELECT COALESCE(MAX(number), 0) + 1 AS nextNum FROM candidates'
+    );
+
     await db.execute(
       `UPDATE candidates SET password_hash = ?, full_name = ?, email = ?,
-       is_registered = 1, registered_at = NOW() WHERE candidate_id = ?`,
-      [hash, full_name, email, candidate_code]
+       number = ?, is_registered = 1, registered_at = NOW() WHERE candidate_id = ?`,
+      [hash, full_name, email, nextNum, candidate_code]
     );
 
     res.json({ success: true, message: 'ลงทะเบียนสำเร็จ' });
@@ -281,11 +285,9 @@ router.post('/admin/add-candidate', apiRequireRole('admin'), verifyCsrf, async (
       return res.status(409).json({ success: false, message: 'Candidate ID นี้มีอยู่แล้ว' });
     }
 
-    const [result] = await db.execute('INSERT INTO candidates (candidate_id) VALUES (?)', [candidate_id]);
-    const newId = result.insertId;
-    await db.execute('UPDATE candidates SET number = ? WHERE id = ?', [newId, newId]);
+    await db.execute('INSERT INTO candidates (candidate_id) VALUES (?)', [candidate_id]);
 
-    res.status(201).json({ success: true, message: `เพิ่มผู้สมัคร ${candidate_id} (เบอร์ ${newId}) สำเร็จ`, data: { candidate_id, number: newId } });
+    res.status(201).json({ success: true, message: `เพิ่มผู้สมัคร ${candidate_id} สำเร็จ (หมายเลขจะได้รับเมื่อผู้สมัคร register)`, data: { candidate_id } });
   } catch (err) {
     console.error(err);
     res.status(500).json({ success: false, message: 'เกิดข้อผิดพลาดภายในระบบ' });

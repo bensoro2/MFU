@@ -175,16 +175,20 @@ router.post('/candidate-register', verifyCsrf, async (req, res) => {
     // เข้ารหัส password ด้วย bcrypt (cost factor 10)
     const hash = await bcrypt.hash(password, 10);
 
-    // อัปเดตข้อมูลผู้สมัคร: ตั้ง is_registered = 1
+    // ใช้ MAX(number) + 1 เพื่อป้องกันซ้ำแม้มีการลบหมายเลขไปก่อนหน้า
+    const [[{ nextNum }]] = await db.execute(
+      'SELECT COALESCE(MAX(number), 0) + 1 AS nextNum FROM candidates'
+    );
+
     await db.execute(
       `UPDATE candidates
          SET password_hash = ?, full_name = ?, email = ?,
-             is_registered = 1, registered_at = NOW()
+             number = ?, is_registered = 1, registered_at = NOW()
        WHERE candidate_id = ?`,
-      [hash, full_name, email, candidate_code]
+      [hash, full_name, email, nextNum, candidate_code]
     );
 
-    req.session.flash_success = `ลงทะเบียนสำเร็จ! คุณได้รับหมายเลขผู้สมัคร เบอร์ ${rows[0].number} กรุณาเข้าสู่ระบบ`;
+    req.session.flash_success = `ลงทะเบียนสำเร็จ! คุณได้รับหมายเลขผู้สมัคร เบอร์ ${nextNum} กรุณาเข้าสู่ระบบ`;
     res.redirect('/login?tab=candidate');
   } catch (err) {
     console.error('candidate-register error:', err);

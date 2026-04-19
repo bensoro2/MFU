@@ -190,14 +190,9 @@ router.post('/add-candidate', requireRole('admin'), verifyCsrf, async (req, res)
       return res.redirect('/admin/candidates');
     }
 
-    const [result] = await db.execute(
-      'INSERT INTO candidates (candidate_id) VALUES (?)',
-      [candidate_id]
-    );
-    const newId = result.insertId;
-    await db.execute('UPDATE candidates SET number = ? WHERE id = ?', [newId, newId]);
+    await db.execute('INSERT INTO candidates (candidate_id) VALUES (?)', [candidate_id]);
 
-    req.session.flash_success = `เพิ่มผู้สมัคร ${candidate_id} (เบอร์ ${newId}) สำเร็จ`;
+    req.session.flash_success = `เพิ่มผู้สมัคร ${candidate_id} สำเร็จ (หมายเลขจะได้รับเมื่อผู้สมัคร register)`;
     res.redirect('/admin/candidates');
   } catch (err) {
     console.error(err);
