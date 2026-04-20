@@ -155,7 +155,7 @@ router.get('/candidates', requireRole('admin'), async (req, res) => {
     // เพิ่ม GROUP BY และ ORDER BY ต่อท้าย query เสมอ
     // GROUP BY c.id = จัดกลุ่มให้ COUNT(v.id) นับโหวตต่อผู้สมัคร 1 คน
     // ORDER BY c.number ASC = เรียงตามหมายเลขผู้สมัคร น้อยไปมาก
-    query += ' GROUP BY c.id ORDER BY c.number ASC';
+    query += ' GROUP BY c.id ORDER BY c.number IS NULL ASC, c.number ASC';
 
     // รัน SQL และเก็บผลลัพธ์ใน candidates (array ของ object ข้อมูลผู้สมัคร)
     const [candidates] = await db.execute(query, params);
