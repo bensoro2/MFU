@@ -50,7 +50,7 @@
         <th class="pb-3 pr-4">Candidate ID</th>
         <th class="pb-3 pr-4">ชื่อ-นามสกุล</th>
         <th class="pb-3 pr-4">Email</th>
-        <th class="pb-3 pr-4 text-center">คะแนน</th>
+        <th class="pb-3 pr-4">นโยบาย</th>
         <th class="pb-3 pr-4 text-center">สถานะ</th>
         <th class="pb-3 text-center">จัดการ</th>
       </tr>
@@ -73,7 +73,13 @@
               <% } %>
             </td>
             <td class="py-3 pr-4 text-gray-500"><%= c.email || '—' %></td>
-            <td class="py-3 pr-4 text-center font-semibold text-mfu-maroon"><%= c.vote_count %></td>
+            <td class="py-3 pr-4 text-gray-500 text-sm max-w-[200px]">
+              <% if (c.policy) { %>
+                <span class="line-clamp-2"><%= c.policy %></span>
+              <% } else { %>
+                <span class="text-gray-300 italic text-xs">—</span>
+              <% } %>
+            </td>
             <td class="py-3 pr-4 text-center">
               <% if (!c.is_registered) { %>
                 <span class="badge-warn">รอลงทะเบียน</span>

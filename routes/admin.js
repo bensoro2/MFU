@@ -135,10 +135,8 @@ router.get('/candidates', requireRole('admin'), async (req, res) => {
     // ยังไม่ใส่ WHERE เพราะจะเพิ่มแบบมีเงื่อนไขด้านล่าง
     let query = `
       SELECT c.id, c.candidate_id, c.full_name, c.email, c.number,
-             c.is_registered, c.is_enabled, c.registered_at,
-             COUNT(v.id) AS vote_count
+             c.policy, c.is_registered, c.is_enabled, c.registered_at
         FROM candidates c
-        LEFT JOIN votes v ON c.id = v.candidate_id
     `;
 
     // เตรียม array สำหรับเก็บค่าที่จะแทน ? ใน SQL (ป้องกัน SQL Injection)
@@ -155,7 +153,7 @@ router.get('/candidates', requireRole('admin'), async (req, res) => {
     // เพิ่ม GROUP BY และ ORDER BY ต่อท้าย query เสมอ
     // GROUP BY c.id = จัดกลุ่มให้ COUNT(v.id) นับโหวตต่อผู้สมัคร 1 คน
     // ORDER BY c.number ASC = เรียงตามหมายเลขผู้สมัคร น้อยไปมาก
-    query += ' GROUP BY c.id ORDER BY c.number IS NULL ASC, c.number ASC';
+    query += ' ORDER BY c.number IS NULL ASC, c.number ASC';
 
     // รัน SQL และเก็บผลลัพธ์ใน candidates (array ของ object ข้อมูลผู้สมัคร)
     const [candidates] = await db.execute(query, params);
