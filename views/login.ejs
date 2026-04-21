@@ -128,7 +128,7 @@
             <label class="block text-sm font-medium text-gray-700 mb-1">Gmail</label>
             <input type="email" name="email" placeholder="example@gmail.com" class="input-field" required />
           </div>
-          <button type="submit" class="btn-primary w-full">ลงทะเบียน</button>
+          <button type="submit" id="btn-register-submit" class="btn-primary w-full">ลงทะเบียน</button>
         </form>
         <button onclick="showCandLogin()" class="btn-outline w-full mt-3">กลับไปหน้าเข้าสู่ระบบ</button>
       </div>
@@ -175,18 +175,53 @@
     document.getElementById('cand-login').classList.remove('hidden');
   }
 
-  // ตรวจสอบรูปแบบ Candidate ID แบบ real-time
+  // ตรวจสอบรูปแบบ Candidate ID และเช็คกับ DB แบบ real-time
+  let checkTimer = null;
   function checkCandidateId(input) {
     const val  = input.value.trim().toUpperCase();
     const hint = document.getElementById('cand-id-hint');
-    if (!val) { hint.textContent = ''; return; }
-    if (/^C-\d{4}$/.test(val)) {
-      hint.textContent  = '✓ รูปแบบถูกต้อง';
-      hint.className    = 'text-xs mt-1 text-green-600';
-    } else {
-      hint.textContent  = 'รูปแบบต้องเป็น C-XXXX (เช่น C-0001)';
-      hint.className    = 'text-xs mt-1 text-red-500';
+    const submitBtn = document.getElementById('btn-register-submit');
+
+    input.value = val;
+
+    if (!val) { hint.textContent = ''; submitBtn.disabled = false; return; }
+
+    if (!/^C-\d{4}$/.test(val)) {
+      hint.textContent = 'รูปแบบต้องเป็น C-XXXX (เช่น C-0001)';
+      hint.className   = 'text-xs mt-1 text-red-500';
+      submitBtn.disabled = true;
+      return;
     }
+
+    hint.textContent = 'กำลังตรวจสอบ...';
+    hint.className   = 'text-xs mt-1 text-gray-400';
+    submitBtn.disabled = true;
+
+    clearTimeout(checkTimer);
+    checkTimer = setTimeout(async () => {
+      try {
+        const res  = await fetch(`/api/check-candidate/${val}`);
+        const data = await res.json();
+
+        if (!data.exists) {
+          hint.textContent = '✗ ' + data.message + ' — กรุณาติดต่อ Admin';
+          hint.className   = 'text-xs mt-1 text-red-500';
+          submitBtn.disabled = true;
+        } else if (data.registered) {
+          hint.textContent = '⚠ ' + data.message;
+          hint.className   = 'text-xs mt-1 text-yellow-600';
+          submitBtn.disabled = true;
+        } else {
+          hint.textContent = '✓ ' + data.message;
+          hint.className   = 'text-xs mt-1 text-green-600';
+          submitBtn.disabled = false;
+        }
+      } catch {
+        hint.textContent = 'ไม่สามารถตรวจสอบได้';
+        hint.className   = 'text-xs mt-1 text-gray-400';
+        submitBtn.disabled = false;
+      }
+    }, 500);
   }
 
   // ตรวจสอบ password ตรงกันหรือไม่

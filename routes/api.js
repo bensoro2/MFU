@@ -44,6 +44,37 @@ router.get('/csrf', (req, res) => {
 });
 
 // ============================================================
+// GET /api/check-candidate/:id — เช็คว่า Candidate ID มีในระบบไหม (ไม่ต้อง login)
+// ============================================================
+router.get('/check-candidate/:id', async (req, res) => {
+  const candidate_id = (req.params.id || '').trim().toUpperCase();
+
+  if (!/^C-\d{4}$/.test(candidate_id)) {
+    return res.json({ exists: false, registered: false, message: 'รูปแบบไม่ถูกต้อง' });
+  }
+
+  try {
+    const [rows] = await db.execute(
+      'SELECT is_registered FROM candidates WHERE candidate_id = ?',
+      [candidate_id]
+    );
+
+    if (rows.length === 0) {
+      return res.json({ exists: false, registered: false, message: 'ไม่พบ Candidate ID นี้ในระบบ' });
+    }
+
+    if (rows[0].is_registered) {
+      return res.json({ exists: true, registered: true, message: 'Candidate ID นี้ลงทะเบียนแล้ว' });
+    }
+
+    res.json({ exists: true, registered: false, message: 'พบในระบบ สามารถลงทะเบียนได้' });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ exists: false, registered: false, message: 'เกิดข้อผิดพลาด' });
+  }
+});
+
+// ============================================================
 // AUTH
 // ============================================================
 
